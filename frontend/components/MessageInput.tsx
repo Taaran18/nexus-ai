@@ -87,7 +87,8 @@ export function MessageInput({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
 
   const activeModel = GROQ_MODELS.find((m) => m.id === selectedModel) ?? GROQ_MODELS[0];
 
@@ -149,7 +150,7 @@ export function MessageInput({
     const recognition = new SR();
     recognition.lang = "en-US";
     recognition.interimResults = false;
-    recognition.onresult = (e: SpeechRecognitionEvent) => {
+    recognition.onresult = (e: any) => {
       const t = e.results[0][0].transcript;
       setValue((prev) => (prev ? `${prev} ${t}` : t));
     };
