@@ -3,7 +3,7 @@ export interface Message {
   session_id: string;
   role: "user" | "assistant";
   content: string;
-  rating?: number | null;   // 1 = thumbs up, -1 = thumbs down
+  rating?: number | null; // 1 = thumbs up, -1 = thumbs down
   created_at: string;
   // Set locally from the SSE done event — not persisted to DB
   total_tokens?: number;
@@ -46,7 +46,7 @@ export interface NexusModel {
   id: string;
   name: string;
   desc: string;
-  badge: string;   // short label shown in the input bar
+  badge: string; // short label shown in the input bar
   speed: "fast" | "medium" | "slow";
 }
 

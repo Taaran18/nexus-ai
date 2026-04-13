@@ -10,32 +10,32 @@
 
 :root {
   /* Light theme */
-  --color-bg:            248 248 252;
-  --color-surface:       255 255 255;
-  --color-surface-2:     243 243 250;
-  --color-surface-3:     235 235 245;
-  --color-border:        226 226 240;
+  --color-bg: 248 248 252;
+  --color-surface: 255 255 255;
+  --color-surface-2: 243 243 250;
+  --color-surface-3: 235 235 245;
+  --color-border: 226 226 240;
   --color-border-strong: 196 196 220;
-  --color-text:          15  23  42;
-  --color-text-2:        71  85  105;
-  --color-muted:         148 163 184;
-  --color-accent:        99  102 241;
-  --color-accent-2:      79  70  229;
+  --color-text: 15 23 42;
+  --color-text-2: 71 85 105;
+  --color-muted: 148 163 184;
+  --color-accent: 99 102 241;
+  --color-accent-2: 79 70 229;
 }
 
 .dark {
   /* Dark theme */
-  --color-bg:            11  11  18;
-  --color-surface:       17  17  27;
-  --color-surface-2:     24  24  38;
-  --color-surface-3:     32  32  50;
-  --color-border:        40  40  60;
-  --color-border-strong: 58  58  84;
-  --color-text:          241 245 249;
-  --color-text-2:        148 163 184;
-  --color-muted:         71  85  105;
-  --color-accent:        99  102 241;
-  --color-accent-2:      129 140 248;
+  --color-bg: 11 11 18;
+  --color-surface: 17 17 27;
+  --color-surface-2: 24 24 38;
+  --color-surface-3: 32 32 50;
+  --color-border: 40 40 60;
+  --color-border-strong: 58 58 84;
+  --color-text: 241 245 249;
+  --color-text-2: 148 163 184;
+  --color-muted: 71 85 105;
+  --color-accent: 99 102 241;
+  --color-accent-2: 129 140 248;
 }
 
 /* ── Base ─────────────────────────────────────────── */
@@ -78,8 +78,13 @@ html {
 
 /* ── Cursor blink ─────────────────────────────────── */
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
 }
 .cursor-blink {
   animation: blink 1.1s step-end infinite;

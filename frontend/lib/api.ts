@@ -1,4 +1,10 @@
-import type { ChatSession, Folder, Message, NexusDocument, StreamEvent } from "./types";
+import type {
+  ChatSession,
+  Folder,
+  Message,
+  NexusDocument,
+  StreamEvent,
+} from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -11,7 +17,9 @@ export async function getSessions(): Promise<ChatSession[]> {
 }
 
 export async function searchSessions(q: string): Promise<ChatSession[]> {
-  const res = await fetch(`${API_URL}/sessions/search?q=${encodeURIComponent(q)}`);
+  const res = await fetch(
+    `${API_URL}/sessions/search?q=${encodeURIComponent(q)}`,
+  );
   if (!res.ok) throw new Error("Search failed");
   return res.json();
 }
@@ -23,13 +31,15 @@ export async function getMessages(sessionId: string): Promise<Message[]> {
 }
 
 export async function deleteSession(sessionId: string): Promise<void> {
-  const res = await fetch(`${API_URL}/sessions/${sessionId}`, { method: "DELETE" });
+  const res = await fetch(`${API_URL}/sessions/${sessionId}`, {
+    method: "DELETE",
+  });
   if (!res.ok) throw new Error("Failed to delete session");
 }
 
 export async function updateSession(
   sessionId: string,
-  data: { folder_id?: string | null; title?: string }
+  data: { folder_id?: string | null; title?: string },
 ): Promise<ChatSession> {
   const res = await fetch(`${API_URL}/sessions/${sessionId}`, {
     method: "PATCH",
@@ -52,7 +62,10 @@ export async function getFolders(): Promise<Folder[]> {
   return res.json();
 }
 
-export async function createFolder(name: string, color: string): Promise<Folder> {
+export async function createFolder(
+  name: string,
+  color: string,
+): Promise<Folder> {
   const res = await fetch(`${API_URL}/folders`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -62,7 +75,10 @@ export async function createFolder(name: string, color: string): Promise<Folder>
   return res.json();
 }
 
-export async function renameFolder(folderId: string, name: string): Promise<Folder> {
+export async function renameFolder(
+  folderId: string,
+  name: string,
+): Promise<Folder> {
   const res = await fetch(`${API_URL}/folders/${folderId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -73,7 +89,9 @@ export async function renameFolder(folderId: string, name: string): Promise<Fold
 }
 
 export async function deleteFolder(folderId: string): Promise<void> {
-  const res = await fetch(`${API_URL}/folders/${folderId}`, { method: "DELETE" });
+  const res = await fetch(`${API_URL}/folders/${folderId}`, {
+    method: "DELETE",
+  });
   if (!res.ok) throw new Error("Failed to delete folder");
 }
 
@@ -104,13 +122,20 @@ export async function* streamChat(
     buffer = lines.pop() ?? "";
     for (const line of lines) {
       if (line.startsWith("data: ")) {
-        try { yield JSON.parse(line.slice(6)) as StreamEvent; } catch { /* skip */ }
+        try {
+          yield JSON.parse(line.slice(6)) as StreamEvent;
+        } catch {
+          /* skip */
+        }
       }
     }
   }
 }
 
-export async function* regenerateChat(sessionId: string, model?: string): AsyncGenerator<StreamEvent> {
+export async function* regenerateChat(
+  sessionId: string,
+  model?: string,
+): AsyncGenerator<StreamEvent> {
   const res = await fetch(`${API_URL}/chat/regenerate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -131,7 +156,11 @@ export async function* regenerateChat(sessionId: string, model?: string): AsyncG
     buffer = lines.pop() ?? "";
     for (const line of lines) {
       if (line.startsWith("data: ")) {
-        try { yield JSON.parse(line.slice(6)) as StreamEvent; } catch { /* skip */ }
+        try {
+          yield JSON.parse(line.slice(6)) as StreamEvent;
+        } catch {
+          /* skip */
+        }
       }
     }
   }
@@ -139,7 +168,10 @@ export async function* regenerateChat(sessionId: string, model?: string): AsyncG
 
 // ─── Message feedback ─────────────────────────────────────────────────────────
 
-export async function sendFeedback(messageId: string, rating: 1 | -1): Promise<void> {
+export async function sendFeedback(
+  messageId: string,
+  rating: 1 | -1,
+): Promise<void> {
   await fetch(`${API_URL}/messages/${messageId}/feedback`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -161,12 +193,17 @@ export async function uploadDocumentFile(file: File): Promise<{
 }> {
   const form = new FormData();
   form.append("file", file);
-  const res = await fetch(`${API_URL}/documents/upload`, { method: "POST", body: form });
+  const res = await fetch(`${API_URL}/documents/upload`, {
+    method: "POST",
+    body: form,
+  });
   if (!res.ok) throw new Error("Upload failed");
   return res.json();
 }
 
 export async function deleteDocument(docId: string): Promise<void> {
-  const res = await fetch(`${API_URL}/documents/${docId}`, { method: "DELETE" });
+  const res = await fetch(`${API_URL}/documents/${docId}`, {
+    method: "DELETE",
+  });
   if (!res.ok) throw new Error("Failed to delete document");
 }

@@ -3,7 +3,14 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Bot, Check, Copy, RefreshCw, ThumbsDown, ThumbsUp } from "lucide-react";
+import {
+  Bot,
+  Check,
+  Copy,
+  RefreshCw,
+  ThumbsDown,
+  ThumbsUp,
+} from "lucide-react";
 import { sendFeedback } from "@/lib/api";
 import { NodeProgress } from "./NodeProgress";
 import type { Message, NodeStatus } from "@/lib/types";
@@ -30,23 +37,37 @@ function CopyButton({ text }: { text: string }) {
       className="p-1.5 rounded-md hover:bg-surface-2 text-muted hover:text-foreground transition-colors"
       title="Copy"
     >
-      {copied ? <Check size={13} className="text-accent" /> : <Copy size={13} />}
+      {copied ? (
+        <Check size={13} className="text-accent" />
+      ) : (
+        <Copy size={13} />
+      )}
     </button>
   );
 }
 
 /* ── Code block with copy ─────────────────────────────────────────────────── */
-function CodeBlock({ className, children }: { className?: string; children: React.ReactNode }) {
+function CodeBlock({
+  className,
+  children,
+}: {
+  className?: string;
+  children: React.ReactNode;
+}) {
   const lang = className?.replace("language-", "") ?? "code";
   const text = String(children).replace(/\n$/, "");
   return (
     <div className="my-3 rounded-xl overflow-hidden border border-border">
       <div className="flex items-center justify-between px-4 py-2 bg-surface-3 border-b border-border">
-        <span className="text-[10px] font-medium text-muted uppercase tracking-wider">{lang}</span>
+        <span className="text-[10px] font-medium text-muted uppercase tracking-wider">
+          {lang}
+        </span>
         <CopyButton text={text} />
       </div>
       <pre className="p-4 overflow-x-auto bg-surface-2 scrollbar-thin m-0">
-        <code className={`text-xs text-foreground-2 ${className ?? ""}`}>{children}</code>
+        <code className={`text-xs text-foreground-2 ${className ?? ""}`}>
+          {children}
+        </code>
       </pre>
     </div>
   );
@@ -75,7 +96,9 @@ export function MessageBubble({
       <div className="flex justify-end gap-2 group animate-fade-up">
         <div className="relative max-w-[75%]">
           <div className="bg-accent text-white rounded-2xl rounded-br-sm px-4 py-3 shadow-sm shadow-accent/20">
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">
+              {message.content}
+            </p>
           </div>
           {/* Copy on hover */}
           <div className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -97,7 +120,10 @@ export function MessageBubble({
       <div className="flex-1 min-w-0 pt-0.5">
         {/* Node progress (shown while loading, before tokens arrive) */}
         {isStreaming && !message.content && nodeStatus && (
-          <NodeProgress currentNode={nodeStatus.node} currentLabel={nodeStatus.label} />
+          <NodeProgress
+            currentNode={nodeStatus.node}
+            currentLabel={nodeStatus.label}
+          />
         )}
 
         {/* Typing dots (fallback while waiting for first node event) */}
@@ -119,9 +145,17 @@ export function MessageBubble({
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
-                code({ className, children, ...props }: React.ComponentPropsWithoutRef<"code"> & { inline?: boolean }) {
+                code({
+                  className,
+                  children,
+                  ...props
+                }: React.ComponentPropsWithoutRef<"code"> & {
+                  inline?: boolean;
+                }) {
                   if (className?.includes("language-")) {
-                    return <CodeBlock className={className}>{children}</CodeBlock>;
+                    return (
+                      <CodeBlock className={className}>{children}</CodeBlock>
+                    );
                   }
                   return (
                     <code
@@ -133,10 +167,14 @@ export function MessageBubble({
                   );
                 },
                 p: ({ children }) => (
-                  <p className="text-sm leading-[1.75] text-foreground mb-3 last:mb-0">{children}</p>
+                  <p className="text-sm leading-[1.75] text-foreground mb-3 last:mb-0">
+                    {children}
+                  </p>
                 ),
                 ul: ({ children }) => (
-                  <ul className="text-sm space-y-1.5 mb-3 list-none pl-0">{children}</ul>
+                  <ul className="text-sm space-y-1.5 mb-3 list-none pl-0">
+                    {children}
+                  </ul>
                 ),
                 li: ({ children }) => (
                   <li className="flex gap-2 text-foreground leading-relaxed">
@@ -145,16 +183,37 @@ export function MessageBubble({
                   </li>
                 ),
                 ol: ({ children }) => (
-                  <ol className="text-sm space-y-1.5 mb-3 list-decimal list-inside text-foreground">{children}</ol>
+                  <ol className="text-sm space-y-1.5 mb-3 list-decimal list-inside text-foreground">
+                    {children}
+                  </ol>
                 ),
-                h1: ({ children }) => <h1 className="text-base font-semibold text-foreground mb-2 mt-4 first:mt-0">{children}</h1>,
-                h2: ({ children }) => <h2 className="text-sm font-semibold text-foreground mb-2 mt-3 first:mt-0">{children}</h2>,
-                h3: ({ children }) => <h3 className="text-sm font-medium text-foreground mb-1.5 mt-2 first:mt-0">{children}</h3>,
+                h1: ({ children }) => (
+                  <h1 className="text-base font-semibold text-foreground mb-2 mt-4 first:mt-0">
+                    {children}
+                  </h1>
+                ),
+                h2: ({ children }) => (
+                  <h2 className="text-sm font-semibold text-foreground mb-2 mt-3 first:mt-0">
+                    {children}
+                  </h2>
+                ),
+                h3: ({ children }) => (
+                  <h3 className="text-sm font-medium text-foreground mb-1.5 mt-2 first:mt-0">
+                    {children}
+                  </h3>
+                ),
                 blockquote: ({ children }) => (
-                  <blockquote className="border-l-2 border-accent/50 pl-4 text-foreground-2 italic my-3">{children}</blockquote>
+                  <blockquote className="border-l-2 border-accent/50 pl-4 text-foreground-2 italic my-3">
+                    {children}
+                  </blockquote>
                 ),
                 a: ({ children, href }) => (
-                  <a href={href} target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent-2 underline underline-offset-2">
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent hover:text-accent-2 underline underline-offset-2"
+                  >
                     {children}
                   </a>
                 ),
@@ -165,10 +224,14 @@ export function MessageBubble({
                   </div>
                 ),
                 th: ({ children }) => (
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-foreground-2 bg-surface-3 border-b border-border">{children}</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-foreground-2 bg-surface-3 border-b border-border">
+                    {children}
+                  </th>
                 ),
                 td: ({ children }) => (
-                  <td className="px-4 py-2.5 text-foreground border-b border-border last:border-0">{children}</td>
+                  <td className="px-4 py-2.5 text-foreground border-b border-border last:border-0">
+                    {children}
+                  </td>
                 ),
               }}
             >
@@ -228,7 +291,9 @@ export function MessageBubble({
             {(message.total_tokens || message.time_ms) && (
               <div className="flex items-center gap-2 text-[10px] text-muted select-none">
                 {message.total_tokens ? (
-                  <span title="Total tokens used">{message.total_tokens.toLocaleString()} tokens</span>
+                  <span title="Total tokens used">
+                    {message.total_tokens.toLocaleString()} tokens
+                  </span>
                 ) : null}
                 {message.total_tokens && message.time_ms ? (
                   <span className="text-border">·</span>

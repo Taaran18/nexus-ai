@@ -2,8 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  ArrowUp, CheckCircle2, ChevronUp, Loader2,
-  Mic, MicOff, Paperclip, XCircle, Zap,
+  ArrowUp,
+  CheckCircle2,
+  ChevronUp,
+  Loader2,
+  Mic,
+  MicOff,
+  Paperclip,
+  XCircle,
+  Zap,
 } from "lucide-react";
 import { uploadDocumentFile } from "@/lib/api";
 import type { NexusModel } from "@/lib/types";
@@ -55,9 +62,9 @@ export const GROQ_MODELS: NexusModel[] = [
 ];
 
 const SPEED_DOT: Record<NexusModel["speed"], string> = {
-  fast:   "bg-emerald-400",
+  fast: "bg-emerald-400",
   medium: "bg-amber-400",
-  slow:   "bg-rose-400",
+  slow: "bg-rose-400",
 };
 
 type UploadStatus = "idle" | "uploading" | "success" | "error";
@@ -90,7 +97,8 @@ export function MessageInput({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
 
-  const activeModel = GROQ_MODELS.find((m) => m.id === selectedModel) ?? GROQ_MODELS[0];
+  const activeModel =
+    GROQ_MODELS.find((m) => m.id === selectedModel) ?? GROQ_MODELS[0];
 
   // Injected value (suggestion card)
   useEffect(() => {
@@ -117,7 +125,9 @@ export function MessageInput({
   // Close model picker on Escape
   useEffect(() => {
     if (!showModelPicker) return;
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setShowModelPicker(false); };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowModelPicker(false);
+    };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [showModelPicker]);
@@ -143,9 +153,16 @@ export function MessageInput({
     const SR =
       (window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition;
-    if (!SR) { alert("Voice input not supported. Try Chrome."); return; }
+    if (!SR) {
+      alert("Voice input not supported. Try Chrome.");
+      return;
+    }
 
-    if (listening) { recognitionRef.current?.stop(); setListening(false); return; }
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
 
     const recognition = new SR();
     recognition.lang = "en-US";
@@ -155,7 +172,7 @@ export function MessageInput({
       setValue((prev) => (prev ? `${prev} ${t}` : t));
     };
     recognition.onerror = () => setListening(false);
-    recognition.onend   = () => setListening(false);
+    recognition.onend = () => setListening(false);
     recognition.start();
     recognitionRef.current = recognition;
     setListening(true);
@@ -193,17 +210,26 @@ export function MessageInput({
   return (
     <div className="px-4 pb-5 pt-2">
       <div className="max-w-3xl mx-auto">
-
         {/* Upload status banner */}
         {uploadStatus !== "idle" && (
-          <div className={`flex items-center gap-2 px-3 py-2 mb-2 rounded-xl text-xs border animate-fade-in ${
-            uploadStatus === "uploading" ? "bg-accent/10 border-accent/20 text-accent" :
-            uploadStatus === "success"   ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" :
-                                          "bg-red-500/10 border-red-500/20 text-red-400"
-          }`}>
-            {uploadStatus === "uploading" && <Loader2 size={13} className="animate-spin shrink-0" />}
-            {uploadStatus === "success"   && <CheckCircle2 size={13} className="shrink-0" />}
-            {uploadStatus === "error"     && <XCircle size={13} className="shrink-0" />}
+          <div
+            className={`flex items-center gap-2 px-3 py-2 mb-2 rounded-xl text-xs border animate-fade-in ${
+              uploadStatus === "uploading"
+                ? "bg-accent/10 border-accent/20 text-accent"
+                : uploadStatus === "success"
+                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                  : "bg-red-500/10 border-red-500/20 text-red-400"
+            }`}
+          >
+            {uploadStatus === "uploading" && (
+              <Loader2 size={13} className="animate-spin shrink-0" />
+            )}
+            {uploadStatus === "success" && (
+              <CheckCircle2 size={13} className="shrink-0" />
+            )}
+            {uploadStatus === "error" && (
+              <XCircle size={13} className="shrink-0" />
+            )}
             <span>{uploadMsg}</span>
           </div>
         )}
@@ -211,7 +237,10 @@ export function MessageInput({
         {/* Model picker dropdown — opens ABOVE the input */}
         {showModelPicker && (
           <>
-            <div className="fixed inset-0 z-40" onClick={() => setShowModelPicker(false)} />
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setShowModelPicker(false)}
+            />
             <div className="relative z-50 mb-2 rounded-2xl border border-border bg-surface shadow-xl shadow-black/20 overflow-hidden animate-fade-up">
               <div className="px-3 pt-3 pb-2 border-b border-border">
                 <p className="text-[10px] font-semibold text-muted uppercase tracking-widest">
@@ -222,7 +251,10 @@ export function MessageInput({
                 {GROQ_MODELS.map((model) => (
                   <button
                     key={model.id}
-                    onClick={() => { onModelChange(model.id); setShowModelPicker(false); }}
+                    onClick={() => {
+                      onModelChange(model.id);
+                      setShowModelPicker(false);
+                    }}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 transition-colors text-left ${
                       model.id === selectedModel
                         ? "bg-accent/10 text-foreground"
@@ -230,27 +262,36 @@ export function MessageInput({
                     }`}
                   >
                     {/* Speed dot */}
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${SPEED_DOT[model.speed]}`} />
+                    <span
+                      className={`w-2 h-2 rounded-full shrink-0 ${SPEED_DOT[model.speed]}`}
+                    />
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{model.name}</span>
+                        <span className="text-sm font-medium">
+                          {model.name}
+                        </span>
                         {model.id === selectedModel && (
                           <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-accent/20 text-accent font-medium">
                             Active
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-muted mt-0.5 truncate">{model.desc}</p>
+                      <p className="text-xs text-muted mt-0.5 truncate">
+                        {model.desc}
+                      </p>
                     </div>
                   </button>
                 ))}
               </div>
               <div className="px-3 py-2 border-t border-border bg-surface-2">
                 <p className="text-[10px] text-muted flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" /> Fast
-                  <span className="mx-2 w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" /> Medium
-                  <span className="mx-0 w-1.5 h-1.5 rounded-full bg-rose-400 inline-block ml-2" /> Slow
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />{" "}
+                  Fast
+                  <span className="mx-2 w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />{" "}
+                  Medium
+                  <span className="mx-0 w-1.5 h-1.5 rounded-full bg-rose-400 inline-block ml-2" />{" "}
+                  Slow
                 </p>
               </div>
             </div>
@@ -275,7 +316,11 @@ export function MessageInput({
             onKeyDown={handleKeyDown}
             disabled={isStreaming}
             placeholder={
-              listening ? "Listening…" : isStreaming ? "Nexus is thinking…" : "Ask anything…"
+              listening
+                ? "Listening…"
+                : isStreaming
+                  ? "Nexus is thinking…"
+                  : "Ask anything…"
             }
             rows={1}
             className="w-full bg-transparent px-4 pt-3.5 pb-12 text-sm text-foreground placeholder-muted resize-none outline-none scrollbar-thin disabled:cursor-not-allowed leading-relaxed"
@@ -295,9 +340,11 @@ export function MessageInput({
                     : "text-muted hover:text-foreground-2 hover:bg-surface-2"
                 }`}
               >
-                {uploadStatus === "uploading"
-                  ? <Loader2 size={15} className="animate-spin" />
-                  : <Paperclip size={15} />}
+                {uploadStatus === "uploading" ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <Paperclip size={15} />
+                )}
               </button>
 
               <button

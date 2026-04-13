@@ -1,13 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  FileText,
-  Loader2,
-  Trash2,
-  UploadCloud,
-  X,
-} from "lucide-react";
+import { FileText, Loader2, Trash2, UploadCloud, X } from "lucide-react";
 import { deleteDocument, getDocuments, uploadDocumentFile } from "@/lib/api";
 import type { NexusDocument } from "@/lib/types";
 
@@ -35,7 +29,9 @@ export function DocumentsPanel({ onClose }: DocumentsPanelProps) {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const handleUpload = async (file: File) => {
     const allowed = ["application/pdf", "text/plain"];
@@ -48,7 +44,9 @@ export function DocumentsPanel({ onClose }: DocumentsPanelProps) {
     setUploadResult(null);
     try {
       const res = await uploadDocumentFile(file);
-      setUploadResult(`✓ "${res.filename}" uploaded — ${res.chunks} chunks indexed`);
+      setUploadResult(
+        `✓ "${res.filename}" uploaded — ${res.chunks} chunks indexed`,
+      );
       await load();
     } catch (e) {
       setUploadResult("Upload failed. Check the console.");
@@ -77,12 +75,15 @@ export function DocumentsPanel({ onClose }: DocumentsPanelProps) {
   };
 
   // Group by source file name
-  const grouped = documents.reduce<Record<string, NexusDocument[]>>((acc, doc) => {
-    const src = doc.metadata?.source ?? "Unknown";
-    if (!acc[src]) acc[src] = [];
-    acc[src].push(doc);
-    return acc;
-  }, {});
+  const grouped = documents.reduce<Record<string, NexusDocument[]>>(
+    (acc, doc) => {
+      const src = doc.metadata?.source ?? "Unknown";
+      if (!acc[src]) acc[src] = [];
+      acc[src].push(doc);
+      return acc;
+    },
+    {},
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex">
@@ -94,7 +95,9 @@ export function DocumentsPanel({ onClose }: DocumentsPanelProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div>
-            <h2 className="text-sm font-semibold text-foreground">Knowledge Base</h2>
+            <h2 className="text-sm font-semibold text-foreground">
+              Knowledge Base
+            </h2>
             <p className="text-xs text-muted mt-0.5">
               Upload files to make Nexus answer questions about them
             </p>
@@ -110,7 +113,10 @@ export function DocumentsPanel({ onClose }: DocumentsPanelProps) {
         {/* Drop zone */}
         <div className="px-5 py-4 border-b border-border">
           <div
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
@@ -168,7 +174,10 @@ export function DocumentsPanel({ onClose }: DocumentsPanelProps) {
             </div>
           ) : Object.keys(grouped).length === 0 ? (
             <div className="text-center py-12">
-              <FileText size={28} className="text-muted mx-auto mb-3 opacity-40" />
+              <FileText
+                size={28}
+                className="text-muted mx-auto mb-3 opacity-40"
+              />
               <p className="text-sm text-muted">No documents yet</p>
               <p className="text-xs text-muted/60 mt-1">
                 Upload a file above to get started
@@ -194,7 +203,9 @@ export function DocumentsPanel({ onClose }: DocumentsPanelProps) {
                         {chunks.length} chunks
                       </span>
                       <button
-                        onClick={() => chunks.forEach((c) => handleDelete(c.id))}
+                        onClick={() =>
+                          chunks.forEach((c) => handleDelete(c.id))
+                        }
                         className="p-1 rounded-md hover:text-red-400 text-muted transition-colors"
                         title="Delete all chunks from this file"
                       >

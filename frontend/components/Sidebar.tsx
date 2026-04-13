@@ -66,7 +66,9 @@ function ConfirmDialog({
         </div>
 
         <h3 className="text-sm font-semibold text-foreground mb-1">{title}</h3>
-        <p className="text-xs text-foreground-2 leading-relaxed mb-5">{description}</p>
+        <p className="text-xs text-foreground-2 leading-relaxed mb-5">
+          {description}
+        </p>
 
         <div className="flex gap-2">
           <button
@@ -113,8 +115,14 @@ interface SidebarProps {
 }
 
 const FOLDER_COLORS = [
-  "#6366f1", "#8b5cf6", "#ec4899", "#f59e0b",
-  "#10b981", "#3b82f6", "#ef4444", "#64748b",
+  "#6366f1",
+  "#8b5cf6",
+  "#ec4899",
+  "#f59e0b",
+  "#10b981",
+  "#3b82f6",
+  "#ef4444",
+  "#64748b",
 ];
 
 function timeAgo(dateStr: string) {
@@ -128,7 +136,13 @@ function timeAgo(dateStr: string) {
 
 /* ── ContextMenu ────────────────────────────────────────────────────────── */
 
-function ContextMenu({ items, onClose }: { items: MenuItem[]; onClose: () => void }) {
+function ContextMenu({
+  items,
+  onClose,
+}: {
+  items: MenuItem[];
+  onClose: () => void;
+}) {
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
@@ -136,7 +150,10 @@ function ContextMenu({ items, onClose }: { items: MenuItem[]; onClose: () => voi
         {items.map((item) => (
           <button
             key={item.label}
-            onClick={() => { item.onClick(); onClose(); }}
+            onClick={() => {
+              item.onClick();
+              onClose();
+            }}
             className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
               item.danger
                 ? "text-red-500 hover:bg-red-500/10"
@@ -166,7 +183,10 @@ function InlineInput({
   onCancel: () => void;
 }) {
   const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => { ref.current?.focus(); ref.current?.select(); }, []);
+  useEffect(() => {
+    ref.current?.focus();
+    ref.current?.select();
+  }, []);
   const commit = () => {
     const v = ref.current?.value.trim() ?? "";
     v ? onConfirm(v) : onCancel();
@@ -218,10 +238,25 @@ function ChatItem({
         onClick: () => onMove(f.id),
       })),
     ...(session.folder_id
-      ? [{ label: "Remove from folder", icon: <FolderIcon size={13} />, onClick: () => onMove(null) }]
+      ? [
+          {
+            label: "Remove from folder",
+            icon: <FolderIcon size={13} />,
+            onClick: () => onMove(null),
+          },
+        ]
       : []),
-    { label: "Rename", icon: <Pencil size={13} />, onClick: () => setRenaming(true) },
-    { label: "Delete", icon: <Trash2 size={13} />, onClick: () => setConfirming(true), danger: true },
+    {
+      label: "Rename",
+      icon: <Pencil size={13} />,
+      onClick: () => setRenaming(true),
+    },
+    {
+      label: "Delete",
+      icon: <Trash2 size={13} />,
+      onClick: () => setConfirming(true),
+      danger: true,
+    },
   ];
 
   return (
@@ -238,27 +273,39 @@ function ChatItem({
         {renaming ? (
           <InlineInput
             initialValue={session.title}
-            onConfirm={(v) => { onRename(v); setRenaming(false); }}
+            onConfirm={(v) => {
+              onRename(v);
+              setRenaming(false);
+            }}
             onCancel={() => setRenaming(false)}
           />
         ) : (
           <>
             <p className="text-xs font-medium truncate">{session.title}</p>
-            <p className="text-[10px] text-muted">{timeAgo(session.created_at)}</p>
+            <p className="text-[10px] text-muted">
+              {timeAgo(session.created_at)}
+            </p>
           </>
         )}
       </div>
       {!renaming && (
         <div className="relative">
           <button
-            onClick={(e) => { e.stopPropagation(); setShowMenu((v) => !v); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowMenu((v) => !v);
+            }}
             className={`p-1 rounded-md transition-colors ${
-              showMenu ? "opacity-100 bg-surface-3 text-foreground" : "opacity-0 group-hover:opacity-100 hover:bg-surface-3 text-muted"
+              showMenu
+                ? "opacity-100 bg-surface-3 text-foreground"
+                : "opacity-0 group-hover:opacity-100 hover:bg-surface-3 text-muted"
             }`}
           >
             <MoreHorizontal size={13} />
           </button>
-          {showMenu && <ContextMenu items={menuItems} onClose={() => setShowMenu(false)} />}
+          {showMenu && (
+            <ContextMenu items={menuItems} onClose={() => setShowMenu(false)} />
+          )}
         </div>
       )}
 
@@ -267,7 +314,10 @@ function ChatItem({
           title="Delete chat?"
           description={`"${session.title}" and all its messages will be permanently deleted.`}
           confirmLabel="Delete chat"
-          onConfirm={() => { setConfirming(false); onDelete(); }}
+          onConfirm={() => {
+            setConfirming(false);
+            onDelete();
+          }}
           onCancel={() => setConfirming(false)}
         />
       )}
@@ -278,9 +328,16 @@ function ChatItem({
 /* ── FolderItem ─────────────────────────────────────────────────────────── */
 
 function FolderItem({
-  folder, sessions, currentSessionId, folders,
-  onSelectSession, onDeleteSession, onRenameSession, onMoveSession,
-  onRenameFolder, onDeleteFolder,
+  folder,
+  sessions,
+  currentSessionId,
+  folders,
+  onSelectSession,
+  onDeleteSession,
+  onRenameSession,
+  onMoveSession,
+  onRenameFolder,
+  onDeleteFolder,
 }: {
   folder: Folder;
   sessions: ChatSession[];
@@ -299,38 +356,72 @@ function FolderItem({
   const [confirming, setConfirming] = useState(false);
 
   const menuItems: MenuItem[] = [
-    { label: "Rename", icon: <Pencil size={13} />, onClick: () => setRenaming(true) },
-    { label: "Delete folder", icon: <Trash2 size={13} />, onClick: () => setConfirming(true), danger: true },
+    {
+      label: "Rename",
+      icon: <Pencil size={13} />,
+      onClick: () => setRenaming(true),
+    },
+    {
+      label: "Delete folder",
+      icon: <Trash2 size={13} />,
+      onClick: () => setConfirming(true),
+      danger: true,
+    },
   ];
 
   return (
     <div className="mt-1">
       <div className="group flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-surface-2 cursor-pointer transition-colors select-none">
-        <button onClick={() => setExpanded((v) => !v)} className="flex items-center gap-1.5 flex-1 min-w-0">
-          {expanded ? <ChevronDown size={12} className="shrink-0 text-muted" /> : <ChevronRight size={12} className="shrink-0 text-muted" />}
-          <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: folder.color }} />
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="flex items-center gap-1.5 flex-1 min-w-0"
+        >
+          {expanded ? (
+            <ChevronDown size={12} className="shrink-0 text-muted" />
+          ) : (
+            <ChevronRight size={12} className="shrink-0 text-muted" />
+          )}
+          <span
+            className="w-2.5 h-2.5 rounded-sm shrink-0"
+            style={{ backgroundColor: folder.color }}
+          />
           {renaming ? (
             <InlineInput
               initialValue={folder.name}
-              onConfirm={(v) => { onRenameFolder(v); setRenaming(false); }}
+              onConfirm={(v) => {
+                onRenameFolder(v);
+                setRenaming(false);
+              }}
               onCancel={() => setRenaming(false)}
             />
           ) : (
             <>
-              <span className="text-xs font-medium text-foreground-2 truncate">{folder.name}</span>
-              <span className="text-[10px] text-muted ml-auto pr-1">{sessions.length}</span>
+              <span className="text-xs font-medium text-foreground-2 truncate">
+                {folder.name}
+              </span>
+              <span className="text-[10px] text-muted ml-auto pr-1">
+                {sessions.length}
+              </span>
             </>
           )}
         </button>
         {!renaming && (
           <div className="relative">
             <button
-              onClick={(e) => { e.stopPropagation(); setShowMenu((v) => !v); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMenu((v) => !v);
+              }}
               className={`p-1 rounded-md transition-colors ${showMenu ? "opacity-100 bg-surface-3 text-foreground" : "opacity-0 group-hover:opacity-100 hover:bg-surface-3 text-muted"}`}
             >
               <MoreHorizontal size={13} />
             </button>
-            {showMenu && <ContextMenu items={menuItems} onClose={() => setShowMenu(false)} />}
+            {showMenu && (
+              <ContextMenu
+                items={menuItems}
+                onClose={() => setShowMenu(false)}
+              />
+            )}
           </div>
         )}
       </div>
@@ -340,7 +431,10 @@ function FolderItem({
           title="Delete folder?"
           description={`"${folder.name}" will be deleted. All chats inside will be moved to Recent.`}
           confirmLabel="Delete folder"
-          onConfirm={() => { setConfirming(false); onDeleteFolder(); }}
+          onConfirm={() => {
+            setConfirming(false);
+            onDeleteFolder();
+          }}
           onCancel={() => setConfirming(false)}
         />
       )}
@@ -385,7 +479,10 @@ function ThemeToggle() {
 
 /* ── NewFolderDialog ────────────────────────────────────────────────────── */
 
-function NewFolderDialog({ onConfirm, onCancel }: {
+function NewFolderDialog({
+  onConfirm,
+  onCancel,
+}: {
   onConfirm: (name: string, color: string) => void;
   onCancel: () => void;
 }) {
@@ -393,7 +490,9 @@ function NewFolderDialog({ onConfirm, onCancel }: {
   const [name, setName] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     const handler = (e: globalThis.KeyboardEvent) => {
@@ -423,18 +522,27 @@ function NewFolderDialog({ onConfirm, onCancel }: {
         <div className="flex items-center gap-3 mb-4">
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors"
-            style={{ backgroundColor: `${color}22`, border: `1.5px solid ${color}55` }}
+            style={{
+              backgroundColor: `${color}22`,
+              border: `1.5px solid ${color}55`,
+            }}
           >
             <FolderIcon size={16} style={{ color }} />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-foreground">New Folder</h3>
-            <p className="text-xs text-muted">Organise your chats into a folder</p>
+            <h3 className="text-sm font-semibold text-foreground">
+              New Folder
+            </h3>
+            <p className="text-xs text-muted">
+              Organise your chats into a folder
+            </p>
           </div>
         </div>
 
         {/* Colour picker */}
-        <p className="text-[10px] font-medium text-muted uppercase tracking-widest mb-2">Colour</p>
+        <p className="text-[10px] font-medium text-muted uppercase tracking-widest mb-2">
+          Colour
+        </p>
         <div className="flex gap-2 mb-4 flex-wrap">
           {FOLDER_COLORS.map((c) => (
             <button
@@ -444,14 +552,17 @@ function NewFolderDialog({ onConfirm, onCancel }: {
               style={{
                 backgroundColor: c,
                 transform: color === c ? "scale(1.2)" : undefined,
-                boxShadow: color === c ? `0 0 0 2px white, 0 0 0 3px ${c}` : undefined,
+                boxShadow:
+                  color === c ? `0 0 0 2px white, 0 0 0 3px ${c}` : undefined,
               }}
             />
           ))}
         </div>
 
         {/* Name input */}
-        <p className="text-[10px] font-medium text-muted uppercase tracking-widest mb-2">Name</p>
+        <p className="text-[10px] font-medium text-muted uppercase tracking-widest mb-2">
+          Name
+        </p>
         <input
           ref={inputRef}
           value={name}
@@ -488,22 +599,34 @@ function NewFolderDialog({ onConfirm, onCancel }: {
 /* ── Sidebar ────────────────────────────────────────────────────────────── */
 
 export function Sidebar({
-  sessions, folders, currentSessionId, isOpen, onToggle,
-  onSelectSession, onNewChat, onDeleteSession, onRenameSession,
-  onMoveSession, onCreateFolder, onRenameFolder, onDeleteFolder,
+  sessions,
+  folders,
+  currentSessionId,
+  isOpen,
+  onToggle,
+  onSelectSession,
+  onNewChat,
+  onDeleteSession,
+  onRenameSession,
+  onMoveSession,
+  onCreateFolder,
+  onRenameFolder,
+  onDeleteFolder,
 }: SidebarProps) {
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
 
   const filtered = searchQuery
-    ? sessions.filter((s) => s.title.toLowerCase().includes(searchQuery.toLowerCase()))
+    ? sessions.filter((s) =>
+        s.title.toLowerCase().includes(searchQuery.toLowerCase()),
+      )
     : null;
 
   const sessionsByFolder = useCallback(
     (folderId: string | null) =>
       (filtered ?? sessions).filter((s) => (s.folder_id ?? null) === folderId),
-    [sessions, filtered]
+    [sessions, filtered],
   );
 
   const unfoldered = sessionsByFolder(null);
@@ -512,10 +635,18 @@ export function Sidebar({
   if (!isOpen) {
     return (
       <div className="hidden md:flex flex-col items-center py-3 gap-2 bg-surface border-r border-border w-12 shrink-0">
-        <button onClick={onToggle} className="p-1.5 rounded-lg hover:bg-surface-2 text-muted hover:text-foreground transition-colors" title="Open sidebar">
+        <button
+          onClick={onToggle}
+          className="p-1.5 rounded-lg hover:bg-surface-2 text-muted hover:text-foreground transition-colors"
+          title="Open sidebar"
+        >
           <PanelLeft size={16} />
         </button>
-        <button onClick={onNewChat} className="p-1.5 rounded-lg hover:bg-surface-2 text-muted hover:text-foreground transition-colors" title="New chat">
+        <button
+          onClick={onNewChat}
+          className="p-1.5 rounded-lg hover:bg-surface-2 text-muted hover:text-foreground transition-colors"
+          title="New chat"
+        >
           <Plus size={16} />
         </button>
       </div>
@@ -531,145 +662,168 @@ export function Sidebar({
       />
 
       {/* Sidebar panel — overlay on mobile, in-flow on desktop */}
-    <div className="fixed inset-y-0 left-0 z-50 md:relative md:z-auto flex flex-col w-72 md:w-64 bg-surface border-r border-border shrink-0 animate-slide-in">
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-3 border-b border-border">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-accent to-purple-600 flex items-center justify-center shadow-sm">
-            <Zap size={12} className="text-white" />
-          </div>
-          <span className="text-sm font-semibold text-foreground tracking-tight">Nexus</span>
-        </div>
-        <div className="flex items-center gap-0.5">
-          <button
-            onClick={() => { setShowSearch((v) => !v); setSearchQuery(""); }}
-            className="p-1.5 rounded-lg hover:bg-surface-2 text-muted hover:text-foreground transition-colors"
-            title="Search conversations"
-          >
-            <Search size={14} />
-          </button>
-          <ThemeToggle />
-          <button onClick={onToggle} className="p-1.5 rounded-lg hover:bg-surface-2 text-muted hover:text-foreground transition-colors">
-            <PanelLeft size={15} />
-          </button>
-        </div>
-      </div>
-
-      {/* Search bar */}
-      {showSearch && (
-        <div className="px-3 pt-2 pb-1 animate-fade-in">
-          <div className="flex items-center gap-2 bg-surface-2 rounded-lg px-2.5 py-1.5 border border-border focus-within:border-accent/50">
-            <Search size={12} className="text-muted shrink-0" />
-            <input
-              autoFocus
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search chats…"
-              className="flex-1 text-xs bg-transparent text-foreground placeholder-muted outline-none"
-            />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery("")} className="text-muted hover:text-foreground">
-                <X size={11} />
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* New Chat */}
-      <div className="px-3 pt-3 pb-1">
-        <button
-          onClick={onNewChat}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-accent text-white hover:bg-accent-2 transition-colors text-sm font-medium shadow-sm shadow-accent/20"
-        >
-          <Plus size={15} />
-          New Chat
-        </button>
-      </div>
-
-      {/* List */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin px-2 py-3 space-y-4">
-        {/* Folders section */}
-        {!searchQuery && (
-          <div>
-            <div className="flex items-center justify-between px-1 mb-1">
-              <span className="text-[10px] font-semibold text-muted uppercase tracking-widest">Folders</span>
-              <button
-                onClick={() => setCreatingFolder(true)}
-                className="p-1 rounded-md hover:bg-surface-2 text-muted hover:text-foreground transition-colors"
-                title="New folder"
-              >
-                <FolderPlus size={13} />
-              </button>
+      <div className="fixed inset-y-0 left-0 z-50 md:relative md:z-auto flex flex-col w-72 md:w-64 bg-surface border-r border-border shrink-0 animate-slide-in">
+        {/* Header */}
+        <div className="flex items-center justify-between px-3 py-3 border-b border-border">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-accent to-purple-600 flex items-center justify-center shadow-sm">
+              <Zap size={12} className="text-white" />
             </div>
+            <span className="text-sm font-semibold text-foreground tracking-tight">
+              Nexus
+            </span>
+          </div>
+          <div className="flex items-center gap-0.5">
+            <button
+              onClick={() => {
+                setShowSearch((v) => !v);
+                setSearchQuery("");
+              }}
+              className="p-1.5 rounded-lg hover:bg-surface-2 text-muted hover:text-foreground transition-colors"
+              title="Search conversations"
+            >
+              <Search size={14} />
+            </button>
+            <ThemeToggle />
+            <button
+              onClick={onToggle}
+              className="p-1.5 rounded-lg hover:bg-surface-2 text-muted hover:text-foreground transition-colors"
+            >
+              <PanelLeft size={15} />
+            </button>
+          </div>
+        </div>
 
-            {creatingFolder && (
-              <NewFolderDialog
-                onConfirm={(name, color) => { onCreateFolder(name, color); setCreatingFolder(false); }}
-                onCancel={() => setCreatingFolder(false)}
+        {/* Search bar */}
+        {showSearch && (
+          <div className="px-3 pt-2 pb-1 animate-fade-in">
+            <div className="flex items-center gap-2 bg-surface-2 rounded-lg px-2.5 py-1.5 border border-border focus-within:border-accent/50">
+              <Search size={12} className="text-muted shrink-0" />
+              <input
+                autoFocus
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search chats…"
+                className="flex-1 text-xs bg-transparent text-foreground placeholder-muted outline-none"
               />
-            )}
-
-            {folders.length === 0 && !creatingFolder && (
-              <p className="text-[11px] text-muted px-2 py-1">No folders yet</p>
-            )}
-
-            {folders.map((folder) => (
-              <FolderItem
-                key={folder.id}
-                folder={folder}
-                sessions={sessionsByFolder(folder.id)}
-                currentSessionId={currentSessionId}
-                folders={folders}
-                onSelectSession={onSelectSession}
-                onDeleteSession={onDeleteSession}
-                onRenameSession={onRenameSession}
-                onMoveSession={onMoveSession}
-                onRenameFolder={(name) => onRenameFolder(folder.id, name)}
-                onDeleteFolder={() => onDeleteFolder(folder.id)}
-              />
-            ))}
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="text-muted hover:text-foreground"
+                >
+                  <X size={11} />
+                </button>
+              )}
+            </div>
           </div>
         )}
 
-        {/* Recent / search results */}
-        {(unfoldered.length > 0 || searchQuery) && (
-          <div>
-            <div className="px-1 mb-1">
-              <span className="text-[10px] font-semibold text-muted uppercase tracking-widest">
-                {searchQuery ? `Results (${(filtered ?? []).length})` : "Recent"}
-              </span>
-            </div>
-            <div className="space-y-0.5">
-              {(searchQuery ? filtered ?? [] : unfoldered).map((s) => (
-                <ChatItem
-                  key={s.id}
-                  session={s}
-                  isActive={currentSessionId === s.id}
+        {/* New Chat */}
+        <div className="px-3 pt-3 pb-1">
+          <button
+            onClick={onNewChat}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-accent text-white hover:bg-accent-2 transition-colors text-sm font-medium shadow-sm shadow-accent/20"
+          >
+            <Plus size={15} />
+            New Chat
+          </button>
+        </div>
+
+        {/* List */}
+        <div className="flex-1 overflow-y-auto scrollbar-thin px-2 py-3 space-y-4">
+          {/* Folders section */}
+          {!searchQuery && (
+            <div>
+              <div className="flex items-center justify-between px-1 mb-1">
+                <span className="text-[10px] font-semibold text-muted uppercase tracking-widest">
+                  Folders
+                </span>
+                <button
+                  onClick={() => setCreatingFolder(true)}
+                  className="p-1 rounded-md hover:bg-surface-2 text-muted hover:text-foreground transition-colors"
+                  title="New folder"
+                >
+                  <FolderPlus size={13} />
+                </button>
+              </div>
+
+              {creatingFolder && (
+                <NewFolderDialog
+                  onConfirm={(name, color) => {
+                    onCreateFolder(name, color);
+                    setCreatingFolder(false);
+                  }}
+                  onCancel={() => setCreatingFolder(false)}
+                />
+              )}
+
+              {folders.length === 0 && !creatingFolder && (
+                <p className="text-[11px] text-muted px-2 py-1">
+                  No folders yet
+                </p>
+              )}
+
+              {folders.map((folder) => (
+                <FolderItem
+                  key={folder.id}
+                  folder={folder}
+                  sessions={sessionsByFolder(folder.id)}
+                  currentSessionId={currentSessionId}
                   folders={folders}
-                  onSelect={() => onSelectSession(s.id)}
-                  onDelete={() => onDeleteSession(s.id)}
-                  onRename={(title) => onRenameSession(s.id, title)}
-                  onMove={(fid) => onMoveSession(s.id, fid)}
+                  onSelectSession={onSelectSession}
+                  onDeleteSession={onDeleteSession}
+                  onRenameSession={onRenameSession}
+                  onMoveSession={onMoveSession}
+                  onRenameFolder={(name) => onRenameFolder(folder.id, name)}
+                  onDeleteFolder={() => onDeleteFolder(folder.id)}
                 />
               ))}
             </div>
-          </div>
-        )}
+          )}
 
-        {sessions.length === 0 && (
-          <p className="text-xs text-muted text-center py-6 px-4 leading-relaxed">
-            No conversations yet.
-            <br />Start a new chat!
+          {/* Recent / search results */}
+          {(unfoldered.length > 0 || searchQuery) && (
+            <div>
+              <div className="px-1 mb-1">
+                <span className="text-[10px] font-semibold text-muted uppercase tracking-widest">
+                  {searchQuery
+                    ? `Results (${(filtered ?? []).length})`
+                    : "Recent"}
+                </span>
+              </div>
+              <div className="space-y-0.5">
+                {(searchQuery ? (filtered ?? []) : unfoldered).map((s) => (
+                  <ChatItem
+                    key={s.id}
+                    session={s}
+                    isActive={currentSessionId === s.id}
+                    folders={folders}
+                    onSelect={() => onSelectSession(s.id)}
+                    onDelete={() => onDeleteSession(s.id)}
+                    onRename={(title) => onRenameSession(s.id, title)}
+                    onMove={(fid) => onMoveSession(s.id, fid)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {sessions.length === 0 && (
+            <p className="text-xs text-muted text-center py-6 px-4 leading-relaxed">
+              No conversations yet.
+              <br />
+              Start a new chat!
+            </p>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-3 py-2.5 border-t border-border">
+          <p className="text-[10px] text-muted text-center">
+            LangGraph · LangChain · Groq
           </p>
-        )}
+        </div>
       </div>
-
-      {/* Footer */}
-      <div className="px-3 py-2.5 border-t border-border">
-        <p className="text-[10px] text-muted text-center">LangGraph · LangChain · Groq</p>
-      </div>
-    </div>
     </>
   );
 }

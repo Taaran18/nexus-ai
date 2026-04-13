@@ -10,22 +10,6 @@ from app.graph.nodes import (
 
 
 def build_nexus_graph():
-    """
-    Nexus LangGraph — updated flow with web search:
-
-        START
-          │
-          ▼
-        classify  ──────────────────────────────────────┐
-          │                                             │
-          │ intent="rag"     intent="search"   intent="general"
-          ▼                       ▼                     ▼
-        retrieve             web_search            generate
-          │                       │                     │
-          └───────────────────────┴────────► generate   │
-                                                  │     │
-                                                 END ◄──┘
-    """
     workflow = StateGraph(NexusState)
 
     workflow.add_node("classify", classify_intent)

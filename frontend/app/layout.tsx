@@ -7,13 +7,20 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "Nexus — AI Assistant",
-  description: "Intelligent AI assistant powered by LangGraph, LangChain & Groq",
+  description:
+    "Intelligent AI assistant powered by LangGraph, LangChain & Groq",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans bg-background text-foreground antialiased`}>
+      <body
+        className={`${inter.variable} font-sans bg-background text-foreground antialiased`}
+      >
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

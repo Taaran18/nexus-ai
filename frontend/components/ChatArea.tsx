@@ -7,10 +7,26 @@ import { exportSession } from "@/lib/api";
 import type { ChatSession, Folder, Message, NodeStatus } from "@/lib/types";
 
 const SUGGESTIONS = [
-  { icon: "🧠", title: "How does LangGraph work?",     sub: "Nodes, edges & conditional routing" },
-  { icon: "🔍", title: "What is RAG in AI?",           sub: "Retrieval-Augmented Generation explained" },
-  { icon: "🌐", title: "Latest AI news today",         sub: "Live web search via DuckDuckGo"  },
-  { icon: "📄", title: "Summarise my uploaded document", sub: "Ask about your knowledge base" },
+  {
+    icon: "🧠",
+    title: "How does LangGraph work?",
+    sub: "Nodes, edges & conditional routing",
+  },
+  {
+    icon: "🔍",
+    title: "What is RAG in AI?",
+    sub: "Retrieval-Augmented Generation explained",
+  },
+  {
+    icon: "🌐",
+    title: "Latest AI news today",
+    sub: "Live web search via DuckDuckGo",
+  },
+  {
+    icon: "📄",
+    title: "Summarise my uploaded document",
+    sub: "Ask about your knowledge base",
+  },
 ];
 
 function greeting() {
@@ -56,7 +72,7 @@ export function ChatArea({
   // Index of the last assistant message
   const lastAssistantIdx = messages.reduceRight(
     (acc, m, i) => (acc === -1 && m.role === "assistant" ? i : acc),
-    -1
+    -1,
   );
 
   /* ── Empty / welcome state ─────────────────────────────────────────── */
@@ -94,7 +110,8 @@ export function ChatArea({
             {greeting()}
           </h1>
           <p className="text-foreground-2 text-sm mb-10 text-center max-w-xs leading-relaxed">
-            Powered by LangGraph &amp; Groq. Chat, search the web, or ask about your documents.
+            Powered by LangGraph &amp; Groq. Chat, search the web, or ask about
+            your documents.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl">
@@ -110,7 +127,9 @@ export function ChatArea({
                     <p className="text-sm font-medium text-foreground group-hover:text-accent transition-colors">
                       {s.title}
                     </p>
-                    <p className="text-xs text-muted mt-0.5 leading-relaxed">{s.sub}</p>
+                    <p className="text-xs text-muted mt-0.5 leading-relaxed">
+                      {s.sub}
+                    </p>
                   </div>
                 </div>
               </button>
@@ -176,10 +195,16 @@ export function ChatArea({
             <MessageBubble
               key={msg.id}
               message={msg}
-              isStreaming={isStreaming && idx === messages.length - 1 && msg.role === "assistant"}
+              isStreaming={
+                isStreaming &&
+                idx === messages.length - 1 &&
+                msg.role === "assistant"
+              }
               isLastAssistant={idx === lastAssistantIdx}
               nodeStatus={
-                isStreaming && idx === messages.length - 1 && msg.role === "assistant"
+                isStreaming &&
+                idx === messages.length - 1 &&
+                msg.role === "assistant"
                   ? nodeStatus
                   : null
               }

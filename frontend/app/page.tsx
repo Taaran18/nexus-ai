@@ -6,22 +6,29 @@ import { ChatArea } from "@/components/ChatArea";
 import { MessageInput } from "@/components/MessageInput";
 import { DocumentsPanel } from "@/components/DocumentsPanel";
 import {
-  createFolder, deleteFolder, deleteSession,
-  getFolders, getMessages, getSessions,
-  regenerateChat, renameFolder, streamChat, updateSession,
+  createFolder,
+  deleteFolder,
+  deleteSession,
+  getFolders,
+  getMessages,
+  getSessions,
+  regenerateChat,
+  renameFolder,
+  streamChat,
+  updateSession,
 } from "@/lib/api";
 import type { ChatSession, Folder, Message, NodeStatus } from "@/lib/types";
 
 export default function Home() {
-  const [sessions, setSessions]           = useState<ChatSession[]>([]);
-  const [folders, setFolders]             = useState<Folder[]>([]);
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [messages, setMessages]           = useState<Message[]>([]);
-  const [isStreaming, setIsStreaming]      = useState(false);
-  const [nodeStatus, setNodeStatus]       = useState<NodeStatus | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [nodeStatus, setNodeStatus] = useState<NodeStatus | null>(null);
   const [selectedModel, setSelectedModel] = useState("llama-3.1-8b-instant");
-  const [sidebarOpen, setSidebarOpen]     = useState(true); // will be corrected for mobile on mount
-  const [docsOpen, setDocsOpen]           = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true); // will be corrected for mobile on mount
+  const [docsOpen, setDocsOpen] = useState(false);
   const [suggestionText, setSuggestionText] = useState("");
 
   // ── Start sidebar closed on mobile ───────────────────────────────────────
@@ -35,22 +42,29 @@ export default function Home() {
       const [s, f] = await Promise.all([getSessions(), getFolders()]);
       setSessions(s);
       setFolders(f);
-    } catch (e) { console.error("[reload]", e); }
+    } catch (e) {
+      console.error("[reload]", e);
+    }
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
   const currentSession = useMemo(
     () => sessions.find((s) => s.id === currentSessionId) ?? null,
-    [sessions, currentSessionId]
+    [sessions, currentSessionId],
   );
 
   // ── Session actions ───────────────────────────────────────────────────────
   const handleSelectSession = useCallback(async (id: string) => {
     setCurrentSessionId(id);
     if (window.innerWidth < 768) setSidebarOpen(false);
-    try { setMessages(await getMessages(id)); }
-    catch (e) { console.error(e); }
+    try {
+      setMessages(await getMessages(id));
+    } catch (e) {
+      console.error(e);
+    }
   }, []);
 
   const handleNewChat = useCallback(() => {
@@ -59,44 +73,65 @@ export default function Home() {
     if (window.innerWidth < 768) setSidebarOpen(false);
   }, []);
 
-  const handleDeleteSession = useCallback(async (id: string) => {
-    await deleteSession(id).catch(console.error);
-    if (currentSessionId === id) { setCurrentSessionId(null); setMessages([]); }
-    await reload();
-  }, [currentSessionId, reload]);
+  const handleDeleteSession = useCallback(
+    async (id: string) => {
+      await deleteSession(id).catch(console.error);
+      if (currentSessionId === id) {
+        setCurrentSessionId(null);
+        setMessages([]);
+      }
+      await reload();
+    },
+    [currentSessionId, reload],
+  );
 
-  const handleRenameSession = useCallback(async (id: string, title: string) => {
-    await updateSession(id, { title }).catch(console.error);
-    await reload();
-  }, [reload]);
+  const handleRenameSession = useCallback(
+    async (id: string, title: string) => {
+      await updateSession(id, { title }).catch(console.error);
+      await reload();
+    },
+    [reload],
+  );
 
-  const handleMoveSession = useCallback(async (id: string, folderId: string | null) => {
-    await updateSession(id, { folder_id: folderId }).catch(console.error);
-    await reload();
-  }, [reload]);
+  const handleMoveSession = useCallback(
+    async (id: string, folderId: string | null) => {
+      await updateSession(id, { folder_id: folderId }).catch(console.error);
+      await reload();
+    },
+    [reload],
+  );
 
   // ── Folder actions ────────────────────────────────────────────────────────
-  const handleCreateFolder = useCallback(async (name: string, color: string) => {
-    await createFolder(name, color).catch(console.error);
-    await reload();
-  }, [reload]);
+  const handleCreateFolder = useCallback(
+    async (name: string, color: string) => {
+      await createFolder(name, color).catch(console.error);
+      await reload();
+    },
+    [reload],
+  );
 
-  const handleRenameFolder = useCallback(async (id: string, name: string) => {
-    await renameFolder(id, name).catch(console.error);
-    await reload();
-  }, [reload]);
+  const handleRenameFolder = useCallback(
+    async (id: string, name: string) => {
+      await renameFolder(id, name).catch(console.error);
+      await reload();
+    },
+    [reload],
+  );
 
-  const handleDeleteFolder = useCallback(async (id: string) => {
-    await deleteFolder(id).catch(console.error);
-    await reload();
-  }, [reload]);
+  const handleDeleteFolder = useCallback(
+    async (id: string) => {
+      await deleteFolder(id).catch(console.error);
+      await reload();
+    },
+    [reload],
+  );
 
   // ── Shared stream consumer (used by chat + regenerate) ────────────────────
   const consumeStream = useCallback(
     async (
       generator: AsyncGenerator<import("@/lib/types").StreamEvent>,
       tempAiId: string,
-      existingSessionId: string | null
+      existingSessionId: string | null,
     ) => {
       let resolved = existingSessionId;
       setIsStreaming(true);
@@ -111,31 +146,42 @@ export default function Home() {
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === tempAiId
-                  ? { ...m, content: m.content + event.content, session_id: event.session_id ?? m.session_id }
-                  : m
-              )
+                  ? {
+                      ...m,
+                      content: m.content + event.content,
+                      session_id: event.session_id ?? m.session_id,
+                    }
+                  : m,
+              ),
             );
             if (event.session_id && !resolved) {
               resolved = event.session_id;
               setCurrentSessionId(event.session_id);
             }
           } else if (event.type === "done") {
-            if (event.session_id && !resolved) setCurrentSessionId(event.session_id);
+            if (event.session_id && !resolved)
+              setCurrentSessionId(event.session_id);
             if (event.total_tokens || event.time_ms) {
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === tempAiId
-                    ? { ...m, total_tokens: event.total_tokens, time_ms: event.time_ms }
-                    : m
-                )
+                    ? {
+                        ...m,
+                        total_tokens: event.total_tokens,
+                        time_ms: event.time_ms,
+                      }
+                    : m,
+                ),
               );
             }
             await reload();
           } else if (event.type === "error") {
             setMessages((prev) =>
               prev.map((m) =>
-                m.id === tempAiId ? { ...m, content: event.content ?? "An error occurred." } : m
-              )
+                m.id === tempAiId
+                  ? { ...m, content: event.content ?? "An error occurred." }
+                  : m,
+              ),
             );
           }
         }
@@ -144,16 +190,20 @@ export default function Home() {
         setMessages((prev) =>
           prev.map((m) =>
             m.id === tempAiId
-              ? { ...m, content: "Could not reach the server. Is the backend running?" }
-              : m
-          )
+              ? {
+                  ...m,
+                  content:
+                    "Could not reach the server. Is the backend running?",
+                }
+              : m,
+          ),
         );
       } finally {
         setIsStreaming(false);
         setNodeStatus(null);
       }
     },
-    [reload]
+    [reload],
   );
 
   // ── Send message ──────────────────────────────────────────────────────────
@@ -164,17 +214,29 @@ export default function Home() {
       const tempAiId = `tmp-ai-${Date.now()}`;
       setMessages((prev) => [
         ...prev,
-        { id: `tmp-user-${Date.now()}`, session_id: currentSessionId ?? "", role: "user",   content, created_at: new Date().toISOString() },
-        { id: tempAiId,                 session_id: currentSessionId ?? "", role: "assistant", content: "",    created_at: new Date().toISOString() },
+        {
+          id: `tmp-user-${Date.now()}`,
+          session_id: currentSessionId ?? "",
+          role: "user",
+          content,
+          created_at: new Date().toISOString(),
+        },
+        {
+          id: tempAiId,
+          session_id: currentSessionId ?? "",
+          role: "assistant",
+          content: "",
+          created_at: new Date().toISOString(),
+        },
       ]);
 
       await consumeStream(
         streamChat(content, currentSessionId ?? undefined, selectedModel),
         tempAiId,
-        currentSessionId
+        currentSessionId,
       );
     },
-    [currentSessionId, isStreaming, consumeStream, selectedModel]
+    [currentSessionId, isStreaming, consumeStream, selectedModel],
   );
 
   // ── Regenerate last response ──────────────────────────────────────────────
@@ -183,7 +245,9 @@ export default function Home() {
 
     // Remove last assistant message from local state
     setMessages((prev) => {
-      const lastAiIdx = [...prev].reverse().findIndex((m) => m.role === "assistant");
+      const lastAiIdx = [...prev]
+        .reverse()
+        .findIndex((m) => m.role === "assistant");
       if (lastAiIdx === -1) return prev;
       const idx = prev.length - 1 - lastAiIdx;
       return prev.filter((_, i) => i !== idx);
@@ -192,13 +256,19 @@ export default function Home() {
     const tempAiId = `tmp-regen-${Date.now()}`;
     setMessages((prev) => [
       ...prev,
-      { id: tempAiId, session_id: currentSessionId, role: "assistant", content: "", created_at: new Date().toISOString() },
+      {
+        id: tempAiId,
+        session_id: currentSessionId,
+        role: "assistant",
+        content: "",
+        created_at: new Date().toISOString(),
+      },
     ]);
 
     await consumeStream(
       regenerateChat(currentSessionId, selectedModel),
       tempAiId,
-      currentSessionId
+      currentSessionId,
     );
   }, [currentSessionId, isStreaming, consumeStream, selectedModel]);
 

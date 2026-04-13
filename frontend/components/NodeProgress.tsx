@@ -8,10 +8,10 @@ interface NodeProgressProps {
 }
 
 const STEPS = [
-  { node: "classify",   label: "Analyzing"  },
-  { node: "retrieve",   label: "Retrieving" },
-  { node: "web_search", label: "Searching"  },
-  { node: "generate",   label: "Generating" },
+  { node: "classify", label: "Analyzing" },
+  { node: "retrieve", label: "Retrieving" },
+  { node: "web_search", label: "Searching" },
+  { node: "generate", label: "Generating" },
 ];
 
 // Which steps are relevant given the current node
@@ -30,7 +30,10 @@ function getVisibleSteps(currentNode: string) {
   return [STEPS[0]];
 }
 
-function getStepStatus(step: { node: string }, currentNode: string): "done" | "active" | "pending" {
+function getStepStatus(
+  step: { node: string },
+  currentNode: string,
+): "done" | "active" | "pending" {
   const order = ["classify", "retrieve", "web_search", "generate"];
   const currentIdx = order.indexOf(currentNode);
   const stepIdx = order.indexOf(step.node);
@@ -54,8 +57,8 @@ export function NodeProgress({ currentNode, currentLabel }: NodeProgressProps) {
                 status === "active"
                   ? "bg-accent/15 text-accent border border-accent/30"
                   : status === "done"
-                  ? "bg-surface-2 text-muted border border-border"
-                  : "bg-surface-2 text-muted/40 border border-border/50"
+                    ? "bg-surface-2 text-muted border border-border"
+                    : "bg-surface-2 text-muted/40 border border-border/50"
               }`}
             >
               {status === "done" ? (
