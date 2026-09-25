@@ -58,20 +58,9 @@ def byok_model(provider_id: str, model: str, api_key: str) -> BaseChatModel:
     )
 
 
-def jev_model() -> BaseChatModel:
-    return ChatOpenAI(
-        model=settings.jev_model,
-        api_key=settings.jev_api_key,
-        base_url=settings.jev_base_url,
-        streaming=True,
-        max_retries=1,
-        timeout=120,
-    )
+THINK_LABEL = "GPT-OSS 120B Thorough on Groq"
 
 
 def think_engine() -> tuple[BaseChatModel, str]:
-    if settings.jev_enabled:
-        return jev_model(), "JEV by TypeSpace AI"
-    return groq_model(
-        settings.think_fallback_model, temperature=0.3, reasoning_effort="high"
-    ), "GPT-OSS 120B Thorough on Groq"
+    label = f"{THINK_LABEL} + JEV by TypeSafe" if settings.jev_enabled else THINK_LABEL
+    return groq_model(settings.think_fallback_model, temperature=0.3, reasoning_effort="high"), label

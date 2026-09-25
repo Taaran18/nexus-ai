@@ -64,7 +64,12 @@ _INTENT_DETAIL = {
 
 def _step_detail(node: str, output: dict) -> str:
     if node == "classify":
-        return _INTENT_DETAIL.get(output.get("intent", "general"), "")
+        detail = _INTENT_DETAIL.get(output.get("intent", "general"), "")
+        if output.get("router") == "JEV" and output.get("route_confidence"):
+            return f"{detail} · JEV {round(output['route_confidence'] * 100)}% sure"
+        if output.get("router") == "your choice":
+            return "Your documents, as you chose"
+        return detail
     if node == "retrieve":
         count = len(output.get("sources") or [])
         return f"{count} passage{'s' if count != 1 else ''} found" if count else "No matching passages"
@@ -77,7 +82,10 @@ def _step_detail(node: str, output: dict) -> str:
         words = len((output.get("answer") or "").split())
         return f"{words} words"
     if node == "decide":
-        return "Board ready" if output.get("board") else "Not a decision"
+        board = output.get("board")
+        if not board:
+            return "Not a decision"
+        return "Scored by JEV" if board.get("scored_by", "").startswith("JEV") else "Board ready"
     return ""
 
 
@@ -258,6 +266,22 @@ async def stream_answer(
                         board = output.get("board")
                         if board:
                             yield _sse({"type": "board", "board": board})
+                    jev_usage = output.get("jev_usage") or {}
+                    if jev_usage:
+                        tokens["input"] += jev_usage.get("input", 0)
+                        tokens["output"] += jev_usage.get("output", 0)
+                        node_tokens[node] = (
+                            node_tokens.get(node, 0) + jev_usage.get("input", 0) + jev_usage.get("output", 0)
+                        )
+                        yield _sse(
+                            {
+                                "type": "usage",
+                                "input_tokens": tokens["input"],
+                                "output_tokens": tokens["output"],
+                                "total_tokens": tokens["input"] + tokens["output"],
+                                "estimated": tokens["estimated"],
+                            }
+                        )
                     now = time.monotonic()
                     step = {
                         "node": node,

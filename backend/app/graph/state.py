@@ -17,4 +17,7 @@ class NexusState(TypedDict, total=False):
     answer: str
     source_mode: str
     board: dict | None
+    route_confidence: float
+    router: str
+    jev_usage: dict
     document_ids: list[str]

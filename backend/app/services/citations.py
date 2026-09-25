@@ -58,7 +58,12 @@ def attach_highlights(answer: str, sources: list[dict]) -> list[dict]:
     if not documents:
         return sources
     cited = {int(n) for n in _CITE.findall(answer)}
-    sentences = re.split(r"(?<=[.!?])\s+|\n+", answer)
+    sentences: list[str] = []
+    for part in re.split(r"(?<=[.!?])\s+|\n+", answer):
+        if sentences and re.fullmatch(r"\s*(\[\d{1,2}\]\s*)+[.!?]?\s*", part):
+            sentences[-1] = f"{sentences[-1]} {part.strip()}"
+        elif part.strip():
+            sentences.append(part)
     result = [s for s in sources if s.get("type") != "document"]
     for source in documents:
         if cited and source["ref"] not in cited:

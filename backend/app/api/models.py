@@ -15,7 +15,9 @@ router = APIRouter(tags=["models"])
 
 def _think_info() -> dict:
     return {
-        "engine": "JEV by TypeSpace AI" if settings.jev_enabled else "GPT-OSS 120B Thorough on Groq",
+        "engine": "GPT-OSS 120B Thorough + JEV by TypeSafe"
+        if settings.jev_enabled
+        else "GPT-OSS 120B Thorough on Groq",
         "jev_enabled": settings.jev_enabled,
     }
 

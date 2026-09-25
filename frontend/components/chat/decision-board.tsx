@@ -85,7 +85,14 @@ export function DecisionBoard({ board }: { board: DecisionBoardData }) {
             <LayoutGrid className="size-5" aria-hidden />
           </span>
           <div>
-            <h3 className="text-base font-bold text-fg">{board.title}</h3>
+            <h3 className="flex flex-wrap items-center gap-2 text-base font-bold text-fg">
+              {board.title}
+              {board.scored_by && (
+                <span className="rounded-full bg-think-soft px-2 py-0.5 text-[11px] font-bold text-think">
+                  Scored by {board.scored_by}
+                </span>
+              )}
+            </h3>
             <p className="text-xs text-fg-2">
               Drag the weights to match what matters to you. Scores update instantly.
             </p>
@@ -113,38 +120,40 @@ export function DecisionBoard({ board }: { board: DecisionBoardData }) {
         </div>
       </header>
 
-      <div className="grid gap-5 p-5 lg:grid-cols-[260px_1fr]">
+      <div className="space-y-5 p-5">
         <fieldset className="space-y-3">
           <legend className="mb-1 text-xs font-bold tracking-wider text-muted uppercase">
             What Matters
           </legend>
-          {board.criteria.map((criterion) => (
-            <label key={criterion.name} className="block">
-              <span className="flex items-center justify-between text-sm font-semibold text-fg">
-                {criterion.name}
-                <span className="text-xs font-bold text-think tabular-nums">
-                  ×{weights[criterion.name]}
+          <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2 xl:grid-cols-3">
+            {board.criteria.map((criterion) => (
+              <label key={criterion.name} className="block">
+                <span className="flex items-center justify-between text-sm font-semibold text-fg">
+                  {criterion.name}
+                  <span className="text-xs font-bold text-think tabular-nums">
+                    ×{weights[criterion.name]}
+                  </span>
                 </span>
-              </span>
-              <input
-                type="range"
-                min={0}
-                max={5}
-                step={1}
-                value={weights[criterion.name]}
-                onChange={(e) =>
-                  setWeights((w) => ({ ...w, [criterion.name]: Number(e.target.value) }))
-                }
-                className="mt-1.5 w-full accent-[var(--think)]"
-                aria-describedby={`why-${criterion.name}`}
-              />
-              {criterion.why && (
-                <span id={`why-${criterion.name}`} className="block text-[11px] text-muted">
-                  {criterion.why}
-                </span>
-              )}
-            </label>
-          ))}
+                <input
+                  type="range"
+                  min={0}
+                  max={5}
+                  step={1}
+                  value={weights[criterion.name]}
+                  onChange={(e) =>
+                    setWeights((w) => ({ ...w, [criterion.name]: Number(e.target.value) }))
+                  }
+                  className="mt-1.5 w-full accent-[var(--think)]"
+                  aria-describedby={`why-${criterion.name}`}
+                />
+                {criterion.why && (
+                  <span id={`why-${criterion.name}`} className="block text-[11px] text-muted">
+                    {criterion.why}
+                  </span>
+                )}
+              </label>
+            ))}
+          </div>
         </fieldset>
 
         <div className="min-w-0 space-y-3">
@@ -195,9 +204,17 @@ export function DecisionBoard({ board }: { board: DecisionBoardData }) {
                     {board.criteria.map((c) => (
                       <td key={c.name} className="px-3 py-3 text-center">
                         <span
+                          title={
+                            option.confidence?.[c.name] !== undefined
+                              ? `${Math.round(option.confidence[c.name] * 100)}% confident`
+                              : undefined
+                          }
                           className={cn(
                             "inline-grid size-8 place-items-center rounded-lg text-xs font-bold tabular-nums",
                             scoreTone(option.scores[c.name]),
+                            option.confidence?.[c.name] !== undefined &&
+                              option.confidence[c.name] < 0.5 &&
+                              "ring-dashed ring-1 ring-warning/60",
                           )}
                         >
                           {option.scores[c.name]}
@@ -212,6 +229,37 @@ export function DecisionBoard({ board }: { board: DecisionBoardData }) {
               </tbody>
             </table>
           </div>
+          {board.pick && (
+            <div className="rounded-2xl border border-think/30 bg-think-soft/50 p-4">
+              <p className="text-sm font-bold text-fg">
+                JEV&apos;s Call: {board.recommendation}{" "}
+                <span className="font-semibold text-think">
+                  · {Math.round(board.pick.confidence * 100)}% confident
+                </span>
+              </p>
+              <ul className="mt-2.5 space-y-1.5">
+                {board.options.map((option) => {
+                  const probability = board.pick?.probabilities[option.name] ?? 0;
+                  return (
+                    <li key={option.name} className="flex items-center gap-3 text-xs">
+                      <span className="w-32 shrink-0 truncate font-semibold text-fg-2">
+                        {option.name}
+                      </span>
+                      <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface-3">
+                        <span
+                          className="block h-full rounded-full bg-[var(--think)]"
+                          style={{ width: `${Math.round(probability * 100)}%` }}
+                        />
+                      </span>
+                      <span className="w-10 text-right font-bold text-fg tabular-nums">
+                        {Math.round(probability * 100)}%
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
           <p className="text-sm text-fg-2">
             <span className="font-bold text-fg">Best fit with your weights: {best}.</span>{" "}
             {changed

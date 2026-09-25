@@ -105,7 +105,9 @@ export const Composer = forwardRef<
     if (next) {
       toast.toast({
         title: "Think Mode On",
-        description: `Nexus will use ${thinkEngine} to weigh your options before answering. Replies take a little longer.`,
+        description: catalog?.think.jev_enabled
+          ? "GPT-OSS 120B reasons it through, then JEV by TypeSafe scores your options and makes the call. Replies take a little longer."
+          : `Nexus will use ${thinkEngine} to weigh your options before answering. Replies take a little longer.`,
       });
     }
   };
@@ -362,7 +364,11 @@ export const Composer = forwardRef<
       {think && (
         <div className="flex items-center gap-2 border-t border-think/20 px-5 py-2 text-xs font-semibold text-think">
           <Lightbulb className="size-3.5" aria-hidden />
-          <span className="truncate">Think mode · {thinkEngine} weighs your options first</span>
+          <span className="truncate">
+            {catalog?.think.jev_enabled
+              ? "Think mode · reasoning by GPT-OSS 120B, decisions scored by JEV"
+              : `Think mode · ${thinkEngine} weighs your options first`}
+          </span>
         </div>
       )}
     </div>

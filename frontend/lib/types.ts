@@ -110,6 +110,7 @@ export interface BoardOption {
   name: string;
   summary: string;
   scores: Record<string, number>;
+  confidence?: Record<string, number>;
 }
 
 export interface DecisionBoardData {
@@ -118,6 +119,8 @@ export interface DecisionBoardData {
   options: BoardOption[];
   recommendation: string | null;
   reason: string;
+  scored_by?: string;
+  pick?: { probabilities: Record<string, number>; confidence: number } | null;
 }
 
 export interface LiveUsage {

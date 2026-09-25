@@ -105,8 +105,9 @@ export default function PrivacyPage() {
                   <strong>DuckDuckGo</strong> receives the search query when Nexus searches the web.
                 </li>
                 <li>
-                  <strong>A reasoning partner (JEV by TypeSpace AI)</strong>, when enabled,
-                  processes your question in Think mode.
+                  <strong>TypeSafe (JEV)</strong> receives each question to decide where Nexus
+                  should look for the answer, and in Think mode receives the question and reasoning
+                  notes to score your options.
                 </li>
                 <li>
                   <strong>Hosting providers</strong> run our website and servers and store data on
