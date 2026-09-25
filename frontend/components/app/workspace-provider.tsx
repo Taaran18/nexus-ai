@@ -1,9 +1,18 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useToast } from "@/components/providers/toast-provider";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, onWaking } from "@/lib/api/client";
 import { chatApi, folderApi, meApi, memoryApi, modelApi } from "@/lib/api/endpoints";
+import { STATIC_CATALOG, STATIC_USAGE } from "@/lib/defaults";
 import type {
   Catalog,
   ChatSummary,
@@ -32,6 +41,9 @@ interface WorkspaceValue {
   usage: Usage | null;
   trialId: string | null;
   offline: boolean;
+  awake: boolean;
+  waking: boolean;
+  wake: () => void;
   refreshUsage: () => Promise<void>;
   retry: () => void;
   setChoice: (choice: ModelChoice) => void;
@@ -62,6 +74,40 @@ const DEFAULT_CHOICE: ModelChoice = {
   label: "GPT-OSS 20B",
 };
 
+const CACHE_KEY = "nexus.cache.v1";
+
+interface WorkspaceCache {
+  chats?: ChatSummary[];
+  folders?: Folder[];
+  memory?: { limit: number; items: MemoryItem[] };
+  providers?: ProviderInfo[];
+  preferences?: Preferences;
+  trialId?: string | null;
+  catalog?: Catalog | null;
+  usage?: Usage | null;
+}
+
+function readCache(): WorkspaceCache | null {
+  try {
+    const raw = window.localStorage.getItem(CACHE_KEY);
+    return raw ? (JSON.parse(raw) as WorkspaceCache) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(cache: WorkspaceCache) {
+  try {
+    window.localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+  } catch {}
+}
+
+export function clearWorkspaceCache() {
+  try {
+    window.localStorage.removeItem(CACHE_KEY);
+  } catch {}
+}
+
 function readStoredChoice(): ModelChoice | null {
   try {
     const raw = window.localStorage.getItem("nexus.model");
@@ -74,18 +120,22 @@ function readStoredChoice(): ModelChoice | null {
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const toast = useToast();
   const [preferences, setPreferences] = useState<Preferences>({});
-  const [usage, setUsage] = useState<Usage | null>(null);
+  const [usage, setUsage] = useState<Usage | null>(STATIC_USAGE);
+  const [awake, setAwake] = useState(false);
+  const [waking, setWaking] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+  const awakeRef = useRef(false);
   const [trialId, setTrialId] = useState<string | null>(null);
   const [offline, setOffline] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [chats, setChats] = useState<ChatSummary[]>([]);
-  const [chatsLoading, setChatsLoading] = useState(true);
+  const [chatsLoading, setChatsLoading] = useState(false);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [memory, setMemory] = useState<{ limit: number; items: MemoryItem[] }>({
     limit: 3,
     items: [],
   });
-  const [catalog, setCatalog] = useState<Catalog | null>(null);
+  const [catalog, setCatalog] = useState<Catalog | null>(STATIC_CATALOG);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [providerModels, setProviderModelsState] = useState<Record<string, ProviderModel[]>>({});
@@ -118,11 +168,14 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUsage = useCallback(async () => {
     try {
-      setUsage(await meApi.usage());
+      setUsage({ ...(await meApi.usage()), live: true });
     } catch {}
   }, []);
 
-  const retry = useCallback(() => setAttempt((n) => n + 1), []);
+  const retry = useCallback(() => {
+    awakeRef.current = false;
+    setAttempt((n) => n + 1);
+  }, []);
 
   const refreshProviders = useCallback(async () => {
     try {
@@ -130,43 +183,78 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, []);
 
+  const loadAll = useCallback(() => {
+    setChatsLoading(true);
+    meApi
+      .get()
+      .then((me) => {
+        setPreferences(me.preferences ?? {});
+        setTrialId(me.id);
+        setOffline(false);
+      })
+      .catch((error) => setOffline(error instanceof ApiError && error.status === 0));
+    refreshUsage();
+    refreshChats();
+    refreshMemory();
+    refreshProviders();
+    folderApi
+      .list()
+      .then(setFolders)
+      .catch(() => {});
+    modelApi
+      .catalog()
+      .then((data) => {
+        setCatalog(data);
+        setCatalogError(null);
+      })
+      .catch(() => {});
+  }, [refreshChats, refreshMemory, refreshProviders, refreshUsage]);
+
+  const wake = useCallback(() => {
+    if (awakeRef.current) return;
+    awakeRef.current = true;
+    setAwake(true);
+    loadAll();
+  }, [loadAll]);
+
+  useEffect(() => onWaking(setWaking), []);
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      meApi
-        .get()
-        .then((me) => {
-          setPreferences(me.preferences ?? {});
-          setTrialId(me.id);
-          setOffline(false);
-        })
-        .catch((error) => setOffline(error instanceof ApiError && error.status === 0));
-      refreshUsage();
-      refreshChats();
-      refreshMemory();
-      refreshProviders();
-      folderApi
-        .list()
-        .then(setFolders)
-        .catch(() => {});
-      modelApi
-        .catalog()
-        .then((data) => {
-          setCatalog(data);
-          setCatalogError(null);
-        })
-        .catch((error) =>
-          setCatalogError(
-            error instanceof ApiError ? error.message : "Couldn't load the model list.",
-          ),
-        );
+      const cache = readCache();
+      if (cache) {
+        if (cache.chats) setChats(cache.chats);
+        if (cache.folders) setFolders(cache.folders);
+        if (cache.memory) setMemory(cache.memory);
+        if (cache.providers) setProviders(cache.providers);
+        if (cache.preferences) setPreferences(cache.preferences);
+        if (cache.trialId) setTrialId(cache.trialId);
+        if (cache.catalog) setCatalog(cache.catalog);
+        if (
+          cache.usage &&
+          cache.usage.resets_at &&
+          new Date(cache.usage.resets_at).getTime() > Date.now()
+        )
+          setUsage(cache.usage);
+      }
       const stored = readStoredChoice();
       if (stored) setChoiceState(stored);
       try {
         setThinkState(window.localStorage.getItem("nexus.think") === "true");
       } catch {}
+      setHydrated(true);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [refreshChats, refreshMemory, refreshProviders, refreshUsage, attempt]);
+  }, []);
+
+  useEffect(() => {
+    if (attempt > 0) wake();
+  }, [attempt, wake]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    writeCache({ chats, folders, memory, providers, preferences, trialId, catalog, usage });
+  }, [hydrated, chats, folders, memory, providers, preferences, trialId, catalog, usage]);
 
   useEffect(() => {
     if (!catalog || choice.provider !== "groq") return;
@@ -385,6 +473,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       usage,
       trialId,
       offline,
+      awake,
+      waking,
+      wake,
       refreshUsage,
       retry,
       setChoice,
@@ -422,6 +513,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       usage,
       trialId,
       offline,
+      awake,
+      waking,
+      wake,
       refreshUsage,
       retry,
       setChoice,
@@ -452,4 +546,11 @@ export function useWorkspace() {
   const context = useContext(WorkspaceContext);
   if (!context) throw new Error("useWorkspace must be used inside WorkspaceProvider");
   return context;
+}
+
+export function useWakeOnMount() {
+  const { wake } = useWorkspace();
+  useEffect(() => {
+    wake();
+  }, [wake]);
 }

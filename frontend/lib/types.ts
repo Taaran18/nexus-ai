@@ -16,6 +16,7 @@ export interface Usage {
   voice_left: number;
   max_turns_per_chat: number;
   resets_at: string;
+  live?: boolean;
 }
 
 export interface Preferences {

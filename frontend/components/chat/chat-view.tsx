@@ -84,6 +84,7 @@ export function ChatView() {
   const routeChat = params.get("c");
   const toast = useToast();
   const workspace = useWorkspace();
+  const { wake } = workspace;
   const actions = useChatActions();
   const [chatId, setChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -127,6 +128,7 @@ export function ChatView() {
 
   useEffect(() => {
     if (routeChat === chatIdRef.current) return;
+    if (routeChat) wake();
     abortRef.current?.abort();
     chatIdRef.current = routeChat;
     const timer = window.setTimeout(() => {
@@ -142,7 +144,7 @@ export function ChatView() {
       }
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [routeChat, loadChat]);
+  }, [routeChat, loadChat, wake]);
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
@@ -353,6 +355,7 @@ export function ChatView() {
 
   const send = async (text: string, sourceOverride?: SourceChoice) => {
     if (streaming) return;
+    workspace.wake();
     const source = sourceOverride ?? remembered;
     setNotice(null);
     const controller = new AbortController();
@@ -387,6 +390,7 @@ export function ChatView() {
   const regenerate = async () => {
     const id = chatIdRef.current;
     if (!id || streaming) return;
+    workspace.wake();
     setNotice(null);
     const controller = new AbortController();
     abortRef.current = controller;
@@ -507,9 +511,12 @@ export function ChatView() {
       : notice
         ? { tone: "think" as const, text: notice.message, action: notice.code === "chat_limit" }
         : null;
-  const usageLine = usage
-    ? `${usage.messages_left} of ${usage.messages_limit} trial messages left today${chatId ? ` · ${Math.max(0, usage.max_turns_per_chat - userTurns)} left in this chat` : ""}`
-    : null;
+  const usageLine =
+    usage && !usage.live
+      ? `Free trial: ${usage.messages_limit} messages a day`
+      : usage
+        ? `${usage.messages_left} of ${usage.messages_limit} trial messages left today${chatId ? ` · ${Math.max(0, usage.max_turns_per_chat - userTurns)} left in this chat` : ""}`
+        : null;
   const bannerNode = banner && (
     <div
       role="status"
@@ -646,6 +653,7 @@ export function ChatView() {
                   onRegenerate={index === lastAssistantIndex && !streaming ? regenerate : undefined}
                   onRate={(rating) => rate(message, rating)}
                   onChooseSource={(choice, remember) => chooseSource(message.id, choice, remember)}
+                  waking={live && workspace.waking}
                 />
               );
             })

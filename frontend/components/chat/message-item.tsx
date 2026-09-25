@@ -46,6 +46,7 @@ export const MessageItem = memo(function MessageItem({
   onRegenerate,
   onRate,
   onChooseSource,
+  waking,
 }: {
   message: Message;
   steps?: PipelineStep[];
@@ -55,6 +56,7 @@ export const MessageItem = memo(function MessageItem({
   onRegenerate?: () => void;
   onRate?: (rating: 1 | -1 | null) => void;
   onChooseSource?: (choice: SourceChoice, remember: boolean) => void;
+  waking?: boolean;
 }) {
   if (message.role === "user") {
     return (
@@ -111,7 +113,9 @@ export const MessageItem = memo(function MessageItem({
         )}
         {waiting && !message.thinking && (!steps || steps.length === 0) && (
           <p className="text-shimmer text-[15px] font-medium" role="status">
-            Getting started…
+            {waking
+              ? "Starting Nexus… the first reply after a quiet spell takes a few seconds."
+              : "Getting started…"}
           </p>
         )}
         {message.content && (

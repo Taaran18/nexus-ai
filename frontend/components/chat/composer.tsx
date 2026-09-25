@@ -45,7 +45,7 @@ export const Composer = forwardRef<
   { onSend, onStop, streaming, disabled, placeholder = "Ask Nexus anything", autoFocus },
   ref,
 ) {
-  const { think, setThink, catalog, preferences, refreshUsage } = useWorkspace();
+  const { think, setThink, catalog, preferences, refreshUsage, wake } = useWorkspace();
   const toast = useToast();
   const [value, setValue] = useState("");
   const [uploading, setUploading] = useState<string | null>(null);
@@ -113,6 +113,7 @@ export const Composer = forwardRef<
   };
 
   const transcribe = async (blob: Blob, extension: string) => {
+    wake();
     setVoice("transcribing");
     try {
       const { text } = await voiceApi.transcribe(blob, `voice.${extension}`);
@@ -193,6 +194,7 @@ export const Composer = forwardRef<
   };
 
   const upload = async (file: File) => {
+    wake();
     setUploading(file.name);
     try {
       const doc = await documentApi.upload(file);

@@ -196,9 +196,10 @@ function SidebarContent({
   const leftPercent = usage
     ? Math.round((usage.messages_left / Math.max(1, usage.messages_limit)) * 100)
     : 100;
-  const usageTitle = usage
-    ? `Free trial: ${usage.messages_left} of ${usage.messages_limit} messages left today`
-    : "Free trial usage";
+  const usageTitle =
+    usage && usage.live
+      ? `Free trial: ${usage.messages_left} of ${usage.messages_limit} messages left today`
+      : `Free trial: ${usage?.messages_limit ?? 25} messages a day`;
 
   const navigate = () => onClose?.();
 
@@ -441,9 +442,9 @@ function SidebarContent({
           <span className={cn("min-w-0 flex-1 transition-opacity duration-200", hide)}>
             <span className="block truncate text-sm font-bold text-fg">Free Trial</span>
             <span className="block truncate text-xs text-muted">
-              {usage
+              {usage?.live
                 ? `${usage.messages_left} of ${usage.messages_limit} messages left today`
-                : "Checking your usage"}
+                : `${usage?.messages_limit ?? 25} messages a day`}
             </span>
           </span>
         </Link>

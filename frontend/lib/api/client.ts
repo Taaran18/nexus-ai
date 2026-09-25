@@ -76,7 +76,23 @@ interface RequestOptions {
 }
 
 const WAKE_STATUSES = new Set([502, 503, 504]);
-const WAKE_DELAYS = [1200, 2500, 4500];
+const WAKE_DELAYS = [1000, 2000, 3000, 4000, 5000, 6000];
+const wakeListeners = new Set<(waking: boolean) => void>();
+let wakingCount = 0;
+
+export function onWaking(listener: (waking: boolean) => void) {
+  wakeListeners.add(listener);
+  return () => {
+    wakeListeners.delete(listener);
+  };
+}
+
+function setWaking(delta: number) {
+  const before = wakingCount > 0;
+  wakingCount = Math.max(0, wakingCount + delta);
+  const after = wakingCount > 0;
+  if (before !== after) wakeListeners.forEach((listener) => listener(after));
+}
 
 function wait(ms: number, signal?: AbortSignal) {
   return new Promise<void>((resolve, reject) => {
@@ -91,22 +107,31 @@ function wait(ms: number, signal?: AbortSignal) {
 async function send(path: string, options: RequestOptions): Promise<Response> {
   const headers: Record<string, string> = { "X-Visitor-Id": visitorId() };
   if (options.body !== undefined) headers["Content-Type"] = "application/json";
-  for (let attempt = 0; ; attempt++) {
-    const last = attempt >= WAKE_DELAYS.length;
-    try {
-      const response = await fetch(`${site.apiUrl}${path}`, {
-        method: options.method ?? "GET",
-        headers,
-        body:
-          options.form ?? (options.body !== undefined ? JSON.stringify(options.body) : undefined),
-        signal: options.signal,
-      });
-      if (!WAKE_STATUSES.has(response.status) || last) return response;
-    } catch (error) {
-      if ((error as Error).name === "AbortError") throw error;
-      if (last) throw networkError();
+  let waiting = false;
+  try {
+    for (let attempt = 0; ; attempt++) {
+      const last = attempt >= WAKE_DELAYS.length;
+      try {
+        const response = await fetch(`${site.apiUrl}${path}`, {
+          method: options.method ?? "GET",
+          headers,
+          body:
+            options.form ?? (options.body !== undefined ? JSON.stringify(options.body) : undefined),
+          signal: options.signal,
+        });
+        if (!WAKE_STATUSES.has(response.status) || last) return response;
+      } catch (error) {
+        if ((error as Error).name === "AbortError") throw error;
+        if (last) throw networkError();
+      }
+      if (!waiting) {
+        waiting = true;
+        setWaking(1);
+      }
+      await wait(WAKE_DELAYS[attempt], options.signal);
     }
-    await wait(WAKE_DELAYS[attempt], options.signal);
+  } finally {
+    if (waiting) setWaking(-1);
   }
 }
 

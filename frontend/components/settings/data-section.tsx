@@ -3,7 +3,7 @@
 import { AlertTriangle, Database, Download, FileX2, MessageSquareX } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { useWorkspace } from "@/components/app/workspace-provider";
+import { clearWorkspaceCache, useWorkspace } from "@/components/app/workspace-provider";
 import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
@@ -169,6 +169,7 @@ export function DataSection() {
           try {
             await meApi.deleteEverything();
             resetVisitor();
+            clearWorkspaceCache();
             try {
               window.localStorage.removeItem("nexus.model");
               window.localStorage.removeItem("nexus.think");

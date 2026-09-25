@@ -1,7 +1,5 @@
-from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_groq import ChatGroq
-from langchain_openai import ChatOpenAI
 
 from app.config import settings
 from app.llm.providers import get_provider
@@ -44,7 +42,11 @@ def byok_model(provider_id: str, model: str, api_key: str) -> BaseChatModel:
     if provider is None:
         raise ValueError(f"Unknown provider {provider_id}")
     if provider.kind == "anthropic":
+        from langchain_anthropic import ChatAnthropic
+
         return ChatAnthropic(model=model, api_key=api_key, streaming=True, max_tokens=8192, max_retries=1, timeout=120)
+    from langchain_openai import ChatOpenAI
+
     headers = {"HTTP-Referer": settings.site_url, "X-Title": "Nexus AI"} if provider_id == "openrouter" else None
     return ChatOpenAI(
         model=model,

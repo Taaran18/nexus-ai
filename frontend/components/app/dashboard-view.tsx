@@ -19,7 +19,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useChatActions } from "@/components/app/chat-actions";
 import { PageFrame } from "@/components/app/page-frame";
-import { useWorkspace } from "@/components/app/workspace-provider";
+import { useWakeOnMount, useWorkspace } from "@/components/app/workspace-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
@@ -32,6 +32,7 @@ import type { Overview } from "@/lib/types";
 import { formatBytes, formatDateTime, formatNumber, greeting, relativeTime } from "@/lib/utils";
 
 export function DashboardView() {
+  useWakeOnMount();
   const workspace = useWorkspace();
   const actions = useChatActions();
   const [overview, setOverview] = useState<Overview | null>(null);

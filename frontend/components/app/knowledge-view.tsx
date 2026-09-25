@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PageFrame } from "@/components/app/page-frame";
+import { useWakeOnMount } from "@/components/app/workspace-provider";
 import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -29,6 +30,7 @@ type UploadItem = { name: string; status: "uploading" | "done" | "error"; messag
 const ACCEPT = [".pdf", ".txt", ".md", ".markdown", ".csv"];
 
 export function KnowledgeView() {
+  useWakeOnMount();
   const toast = useToast();
   const [docs, setDocs] = useState<DocumentFile[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);

@@ -3,6 +3,7 @@
 import { Brain, Database, Gauge, Info, KeyRound, Palette, SlidersHorizontal } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PageFrame } from "@/components/app/page-frame";
+import { useWakeOnMount } from "@/components/app/workspace-provider";
 import { AboutSection } from "@/components/settings/about-section";
 import { AppearanceSection } from "@/components/settings/appearance-section";
 import { DataSection } from "@/components/settings/data-section";
@@ -36,6 +37,7 @@ const TABS = [
 type Tab = (typeof TABS)[number]["value"];
 
 export function SettingsView() {
+  useWakeOnMount();
   const params = useSearchParams();
   const router = useRouter();
   const requested = params.get("tab") as Tab | null;
