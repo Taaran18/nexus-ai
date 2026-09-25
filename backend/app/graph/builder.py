@@ -1,37 +1,43 @@
-from langgraph.graph import StateGraph, END, START
-from app.graph.state import NexusState
+from langgraph.graph import END, START, StateGraph
+
 from app.graph.nodes import (
-    classify_intent,
-    retrieve_context,
-    web_search,
-    generate_response,
+    classify,
+    deliberate,
+    generate,
+    retrieve,
     route_after_classify,
+    route_after_context,
+    web_search,
 )
+from app.graph.state import NexusState
+
+NODE_LABELS = {
+    "classify": "Understanding your question",
+    "retrieve": "Searching your documents",
+    "web_search": "Searching the web",
+    "deliberate": "Thinking it through",
+    "generate": "Writing the answer",
+}
 
 
-def build_nexus_graph():
-    workflow = StateGraph(NexusState)
-
-    workflow.add_node("classify", classify_intent)
-    workflow.add_node("retrieve", retrieve_context)
-    workflow.add_node("web_search", web_search)
-    workflow.add_node("generate", generate_response)
-
-    workflow.add_edge(START, "classify")
-    workflow.add_conditional_edges(
+def build_graph():
+    graph = StateGraph(NexusState)
+    graph.add_node("classify", classify)
+    graph.add_node("retrieve", retrieve)
+    graph.add_node("web_search", web_search)
+    graph.add_node("deliberate", deliberate)
+    graph.add_node("generate", generate)
+    graph.add_edge(START, "classify")
+    graph.add_conditional_edges(
         "classify",
         route_after_classify,
-        {
-            "retrieve": "retrieve",
-            "web_search": "web_search",
-            "generate": "generate",
-        },
+        {"retrieve": "retrieve", "web_search": "web_search", "deliberate": "deliberate", "generate": "generate"},
     )
-    workflow.add_edge("retrieve", "generate")
-    workflow.add_edge("web_search", "generate")
-    workflow.add_edge("generate", END)
+    for node in ("retrieve", "web_search"):
+        graph.add_conditional_edges(node, route_after_context, {"deliberate": "deliberate", "generate": "generate"})
+    graph.add_edge("deliberate", "generate")
+    graph.add_edge("generate", END)
+    return graph.compile()
 
-    return workflow.compile()
 
-
-nexus_graph = build_nexus_graph()
+nexus_graph = build_graph()

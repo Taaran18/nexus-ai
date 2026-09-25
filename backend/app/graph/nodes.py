@@ -1,128 +1,88 @@
-import asyncio
-from langchain_groq import ChatGroq
-from langchain_core.messages import SystemMessage
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_community.tools import DuckDuckGoSearchRun
+import logging
 
-from app.graph.state import NexusState
-from app.db.vector_store import similarity_search_async
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.runnables import RunnableConfig
+
 from app.config import settings
+from app.graph import prompts
+from app.graph.state import NexusState
+from app.llm.factory import groq_model, think_engine
+from app.services.embeddings import embed_query
+from app.services.search import web_search as run_web_search
+from app.store import documents
 
-DEFAULT_MODEL = "llama-3.1-8b-instant"
-
-# ── LLM cache (keyed by model id) ────────────────────────────────────────────
-_llm_cache: dict[str, ChatGroq] = {}
-
-def get_llm(model: str = DEFAULT_MODEL) -> ChatGroq:
-    if model not in _llm_cache:
-        _llm_cache[model] = ChatGroq(
-            model=model,
-            api_key=settings.GROQ_API_KEY,
-            streaming=True,
-            temperature=0.7,
-        )
-    return _llm_cache[model]
+logger = logging.getLogger("nexus")
 
 
-# ── Node 1: Classify intent ───────────────────────────────────────────────────
-
-async def classify_intent(state: NexusState) -> NexusState:
-    """
-    Classifies the user message into one of:
-      'rag'     → search uploaded knowledge base
-      'search'  → live web search (DuckDuckGo)
-      'general' → direct LLM answer
-    """
-    last_message = state["messages"][-1].content
-    llm = get_llm(state.get("model", DEFAULT_MODEL))
-
-    prompt = ChatPromptTemplate.from_messages([
-        (
-            "system",
-            """You are a query classifier. Classify into exactly one of:
-
-"rag"     – question about specific uploaded documents or knowledge base
-"search"  – needs current/live info: news, weather, prices, recent events
-"general" – everything else: coding, math, creative writing, general Q&A
-
-Reply with ONLY the single word. No punctuation.""",
-        ),
-        ("human", "{question}"),
-    ])
-
-    chain = prompt | llm
-    result = await chain.ainvoke({"question": last_message})
-    raw = result.content.strip().lower()
-    intent = raw if raw in ("rag", "search") else "general"
-    return {**state, "intent": intent}
-
-
-# ── Node 2a: RAG retrieval ────────────────────────────────────────────────────
-
-async def retrieve_context(state: NexusState) -> NexusState:
-    """Fetch top-3 relevant chunks from Supabase pgvector."""
+async def classify(state: NexusState) -> NexusState:
     try:
-        docs = await similarity_search_async(state["messages"][-1].content, k=3)
-        context = "\n\n---\n\n".join([
-            f"Source: {doc.metadata.get('source', 'knowledge base')}\n{doc.page_content}"
-            for doc in docs
-        ]) if docs else ""
-        return {**state, "context": context}
-    except Exception as e:
-        print(f"[retrieve_context] {e}")
-        return {**state, "context": ""}
+        result = await groq_model(settings.router_model, temperature=0).ainvoke(
+            [SystemMessage(content=prompts.CLASSIFY), HumanMessage(content=state["question"][:2000])]
+        )
+        word = (result.text or "").strip().lower().split()[0].strip(".,") if result.text else "general"
+    except Exception as exc:
+        logger.warning("classify_failed error=%s", type(exc).__name__)
+        word = "general"
+    if word == "rag" and not state.get("has_documents"):
+        word = "general"
+    return {"intent": word if word in ("rag", "search") else "general"}
 
 
-# ── Node 2b: Web search ───────────────────────────────────────────────────────
+async def retrieve(state: NexusState) -> NexusState:
+    vector = await embed_query(state["question"])
+    if vector is None:
+        return {"context": "", "sources": []}
+    matches = documents.search(state["user_id"], vector, k=4)
+    context = "\n\n---\n\n".join(f"File: {m.source}\n{m.content}" for m in matches)
+    sources = []
+    for m in matches:
+        if not any(s["title"] == m.source for s in sources):
+            sources.append({"type": "document", "title": m.source, "url": None})
+    return {"context": context, "sources": sources}
+
 
 async def web_search(state: NexusState) -> NexusState:
-    """Live web search via DuckDuckGo — no API key needed."""
-    try:
-        query = state["messages"][-1].content
-        search = DuckDuckGoSearchRun()
-        raw = await asyncio.to_thread(search.run, query)
-        return {**state, "context": f"Web search results for: {query}\n\n{raw}"}
-    except Exception as e:
-        print(f"[web_search] {e}")
-        return {**state, "context": ""}
-
-
-# ── Node 3: Generate response ─────────────────────────────────────────────────
-
-async def generate_response(state: NexusState) -> NexusState:
-    """Generate the final answer using the user-selected Groq model."""
-    llm = get_llm(state.get("model", DEFAULT_MODEL))
-    context = state.get("context", "")
-    intent = state.get("intent", "general")
-
-    system_content = (
-        "You are Nexus, an intelligent and helpful AI assistant. "
-        "You are concise, accurate, and friendly. "
-        "Format responses with markdown when it improves clarity. "
-        "Never reveal which underlying model you are based on."
+    results = await run_web_search(state["question"])
+    context = "\n\n".join(
+        f"[{i}] {r['title']}\nURL: {r['url']}\n{r['snippet']}" for i, r in enumerate(results, start=1)
     )
-
-    if context and intent == "rag":
-        system_content += (
-            "\n\nUse the following retrieved documents to answer. "
-            "If they don't contain the answer, say so and use your general knowledge.\n\n"
-            + context
-        )
-    elif context and intent == "search":
-        system_content += (
-            "\n\nUse the following live web search results to answer. "
-            "Cite sources where relevant.\n\n"
-            + context
-        )
-
-    messages_to_send = [SystemMessage(content=system_content)] + list(state["messages"])
-    response = await llm.ainvoke(messages_to_send)
-    return {**state, "messages": [response]}
+    return {"context": context, "sources": [{"type": "web", "title": r["title"], "url": r["url"]} for r in results]}
 
 
-# ── Edge: route after classify ────────────────────────────────────────────────
+def _context_messages(state: NexusState) -> list[SystemMessage]:
+    parts = [prompts.ASSISTANT]
+    if state.get("memory"):
+        parts.append(prompts.MEMORY.format(memory=state["memory"]))
+    if state.get("context") and state.get("intent") == "rag":
+        parts.append(prompts.RAG.format(context=state["context"]))
+    if state.get("context") and state.get("intent") == "search":
+        parts.append(prompts.SEARCH.format(context=state["context"]))
+    return [SystemMessage(content="\n\n".join(parts))]
+
+
+async def deliberate(state: NexusState) -> NexusState:
+    engine, _ = think_engine()
+    messages = _context_messages(state) + [SystemMessage(content=prompts.DELIBERATE)] + state["history"][-6:]
+    result = await engine.ainvoke(messages)
+    return {"analysis": result.text or ""}
+
+
+async def generate(state: NexusState, config: RunnableConfig) -> NexusState:
+    llm = config["configurable"]["llm"]
+    messages = _context_messages(state)
+    if state.get("analysis"):
+        messages.append(SystemMessage(content=prompts.ANALYSIS.format(analysis=state["analysis"])))
+    result = await llm.ainvoke(messages + state["history"])
+    return {"answer": result.text or ""}
+
 
 def route_after_classify(state: NexusState) -> str:
-    return {"rag": "retrieve", "search": "web_search"}.get(
-        state.get("intent", "general"), "generate"
-    )
+    if state["intent"] == "rag":
+        return "retrieve"
+    if state["intent"] == "search":
+        return "web_search"
+    return "deliberate" if state.get("think") else "generate"
+
+
+def route_after_context(state: NexusState) -> str:
+    return "deliberate" if state.get("think") else "generate"
