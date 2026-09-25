@@ -14,30 +14,68 @@ from app.store import documents
 logger = logging.getLogger("nexus")
 
 
-async def classify(state: NexusState) -> NexusState:
+async def detect_intent(question: str, has_documents: bool) -> str:
     try:
         result = await groq_model(settings.router_model, temperature=0).ainvoke(
-            [SystemMessage(content=prompts.CLASSIFY), HumanMessage(content=state["question"][:2000])]
+            [SystemMessage(content=prompts.CLASSIFY), HumanMessage(content=question[:2000])]
         )
         word = (result.text or "").strip().lower().split()[0].strip(".,") if result.text else "general"
     except Exception as exc:
         logger.warning("classify_failed error=%s", type(exc).__name__)
         word = "general"
-    if word == "rag" and not state.get("has_documents"):
+    if word == "rag" and not has_documents:
         word = "general"
-    return {"intent": word if word in ("rag", "search") else "general"}
+    return word if word in ("rag", "search") else "general"
+
+
+async def classify(state: NexusState) -> NexusState:
+    mode = state.get("source_mode", "auto")
+    if mode == "documents":
+        return {"intent": "rag"}
+    return {"intent": await detect_intent(state["question"], bool(state.get("has_documents")) and mode != "ai")}
+
+
+def _location(match) -> str:
+    parts = [match.source]
+    if match.page:
+        parts.append(f"Page {match.page}")
+    if match.start_line:
+        lines = (
+            f"Line {match.start_line}"
+            if match.start_line == match.end_line
+            else f"Lines {match.start_line}-{match.end_line}"
+        )
+        parts.append(lines)
+    return " · ".join(parts)
 
 
 async def retrieve(state: NexusState) -> NexusState:
     vector = await embed_query(state["question"])
     if vector is None:
         return {"context": "", "sources": []}
-    matches = documents.search(state["user_id"], vector, k=4)
-    context = "\n\n---\n\n".join(f"File: {m.source}\n{m.content}" for m in matches)
-    sources = []
-    for m in matches:
-        if not any(s["title"] == m.source for s in sources):
-            sources.append({"type": "document", "title": m.source, "url": None})
+    documents_mode = state.get("source_mode") == "documents"
+    matches = documents.search(
+        state["user_id"],
+        vector,
+        k=6 if documents_mode else 4,
+        doc_ids=state.get("document_ids") or None,
+    )
+    context = "\n\n".join(f"[{n}] {_location(m)}\n{m.content}" for n, m in enumerate(matches, start=1))
+    sources = [
+        {
+            "type": "document",
+            "ref": n,
+            "title": m.source,
+            "url": None,
+            "document_id": m.doc_id,
+            "page": m.page,
+            "start_line": m.start_line,
+            "end_line": m.end_line,
+            "quote": m.content,
+            "line_numbers": m.line_numbers,
+        }
+        for n, m in enumerate(matches, start=1)
+    ]
     return {"context": context, "sources": sources}
 
 
@@ -53,7 +91,13 @@ def _context_messages(state: NexusState) -> list[SystemMessage]:
     parts = [prompts.ASSISTANT]
     if state.get("memory"):
         parts.append(prompts.MEMORY.format(memory=state["memory"]))
-    if state.get("context") and state.get("intent") == "rag":
+    if state.get("intent") == "rag" and state.get("source_mode") == "documents":
+        parts.append(
+            prompts.DOCUMENTS_ONLY.format(context=state["context"])
+            if state.get("context")
+            else prompts.NO_DOCUMENT_MATCH
+        )
+    elif state.get("context") and state.get("intent") == "rag":
         parts.append(prompts.RAG.format(context=state["context"]))
     if state.get("context") and state.get("intent") == "search":
         parts.append(prompts.SEARCH.format(context=state["context"]))

@@ -15,3 +15,5 @@ class NexusState(TypedDict, total=False):
     analysis: str
     has_documents: bool
     answer: str
+    source_mode: str
+    document_ids: list[str]

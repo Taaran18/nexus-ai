@@ -1,3 +1,5 @@
+import json
+
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
@@ -5,13 +7,31 @@ from app.config import settings
 from app.core.errors import AppError
 from app.core.ratelimit import chat_limiter
 from app.core.visitor import Visitor, get_visitor
+from app.graph.nodes import detect_intent
 from app.models.schemas import ChatRequest, RegenerateRequest
 from app.services.chat_runner import fallback_title, resolve_llm, stream_answer
-from app.store import chats, usage
+from app.store import chats, documents, usage
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 _HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+
+
+def _clarify_stream(docs: list[dict]):
+    payload = {
+        "type": "clarify",
+        "message": "This looks like a question about your documents. Where should I look for the answer?",
+        "documents": [
+            {"id": d["id"], "source": d["source"], "pages": d.get("pages"), "chunks": d["chunks"]} for d in docs
+        ],
+    }
+    yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+
+def _source_args(source) -> dict:
+    if source is None:
+        return {"source_mode": "auto", "document_ids": []}
+    return {"source_mode": source.mode, "document_ids": source.document_ids if source.mode == "documents" else []}
 
 
 def _check_turns(prior: list[dict]) -> None:
@@ -32,6 +52,10 @@ async def chat(body: ChatRequest, visitor: Visitor = Depends(get_visitor)):
     is_new = not body.chat_id
     prior: list[dict] = [] if is_new else chats.get_messages(visitor.id, chats.get_chat(visitor.id, body.chat_id)["id"])
     _check_turns(prior)
+    if body.source is None:
+        docs = documents.list_documents(visitor.id)
+        if docs and await detect_intent(body.message, True) == "rag":
+            return StreamingResponse(_clarify_stream(docs), media_type="text/event-stream", headers=_HEADERS)
     await usage.consume(visitor.ip, visitor.id, "messages")
     chat_meta = (
         await chats.create_chat(visitor.id, fallback_title(body.message))
@@ -53,6 +77,7 @@ async def chat(body: ChatRequest, visitor: Visitor = Depends(get_visitor)):
             ip=visitor.ip,
             think=body.think,
             use_memory=body.use_memory,
+            **_source_args(body.source),
         ),
         media_type="text/event-stream",
         headers=_HEADERS,
@@ -84,6 +109,7 @@ async def regenerate(body: RegenerateRequest, visitor: Visitor = Depends(get_vis
             ip=visitor.ip,
             think=body.think,
             use_memory=body.use_memory,
+            **_source_args(body.source),
         ),
         media_type="text/event-stream",
         headers=_HEADERS,

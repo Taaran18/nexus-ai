@@ -15,6 +15,7 @@ from app.llm.catalog import groq_entry
 from app.llm.factory import byok_model, groq_catalog_model, groq_model, think_engine
 from app.llm.providers import get_provider
 from app.services import memory
+from app.services.citations import attach_highlights
 from app.store import chats, documents, keys
 from app.store import usage as trial_usage
 
@@ -136,6 +137,8 @@ async def stream_answer(
     ip: str,
     think: bool,
     use_memory: bool,
+    source_mode: str = "auto",
+    document_ids: list[str] | None = None,
 ) -> AsyncIterator[str]:
     started = time.monotonic()
     answer, thinking = "", ""
@@ -161,6 +164,8 @@ async def stream_answer(
             output_tokens=tokens["output"] or None,
             total_tokens=(tokens["input"] + tokens["output"]) or None,
             tokens_estimated=tokens["estimated"],
+            source_mode=source_mode,
+            document_ids=document_ids or [],
             time_ms=int((time.monotonic() - started) * 1000),
             stopped=stopped,
         )
@@ -185,6 +190,8 @@ async def stream_answer(
             "context": "",
             "sources": [],
             "analysis": "",
+            "source_mode": source_mode,
+            "document_ids": document_ids or [],
         }
         async with asyncio.timeout(GENERATION_TIMEOUT):
             async for event in nexus_graph.astream_events(state, config={"configurable": {"llm": llm}}, version="v2"):
@@ -202,7 +209,12 @@ async def stream_answer(
                 ):
                     sources = (event["data"].get("output") or {}).get("sources", [])
                     if sources:
-                        yield _sse({"type": "sources", "sources": sources})
+                        yield _sse(
+                            {
+                                "type": "sources",
+                                "sources": [{k: v for k, v in s.items() if k != "line_numbers"} for s in sources],
+                            }
+                        )
                 elif kind == "on_chat_model_stream" and node in ("deliberate", "generate"):
                     chunk = event["data"]["chunk"]
                     reasoning = (chunk.additional_kwargs or {}).get("reasoning_content") or ""
@@ -237,6 +249,7 @@ async def stream_answer(
             raise AppError(
                 502, "empty_answer", "The model returned an empty answer. Try again or pick a different model."
             )
+        sources = attach_highlights(answer, sources)
         message = build_message()
         await chats.append(user_id, chat_id, message)
         finished = True

@@ -11,6 +11,7 @@ import type {
   Preferences,
   ProviderInfo,
   ProviderModel,
+  SourceChoice,
   Usage,
 } from "@/lib/types";
 
@@ -50,11 +51,19 @@ export const chatApi = {
       model: string;
       think: boolean;
       use_memory: boolean;
+      source?: SourceChoice | null;
     },
     signal: AbortSignal,
   ) => streamEvents("/chat", body, signal),
   regenerate: (
-    body: { chat_id: string; provider: string; model: string; think: boolean; use_memory: boolean },
+    body: {
+      chat_id: string;
+      provider: string;
+      model: string;
+      think: boolean;
+      use_memory: boolean;
+      source?: SourceChoice | null;
+    },
     signal: AbortSignal,
   ) => streamEvents("/chat/regenerate", body, signal),
 };

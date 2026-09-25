@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CopyButton } from "@/components/chat/copy-button";
@@ -55,11 +55,67 @@ const components: Components = {
   img: () => null,
 };
 
-export const Markdown = memo(function Markdown({ content }: { content: string }) {
+const CITATION = /\[(\d{1,2})\](?!\()/g;
+
+function linkCitations(content: string) {
+  return content
+    .split(/(```[\s\S]*?```|`[^`\n]*`)/g)
+    .map((part, index) => (index % 2 === 1 ? part : part.replace(CITATION, "[$1](#cite-$1)")))
+    .join("");
+}
+
+export function scrollToReference(id: string) {
+  const target = document.getElementById(id);
+  if (!target) return;
+  target.scrollIntoView({ behavior: "smooth", block: "center" });
+  target.dataset.flash = "true";
+  window.setTimeout(() => {
+    delete target.dataset.flash;
+  }, 1600);
+}
+
+export const Markdown = memo(function Markdown({
+  content,
+  citeId,
+}: {
+  content: string;
+  citeId?: string;
+}) {
+  const withCitations = useMemo<Components>(
+    () =>
+      citeId
+        ? {
+            ...components,
+            a: ({ href, children }) => {
+              if (href?.startsWith("#cite-")) {
+                const ref = href.slice(6);
+                const target = `ref-${citeId}-${ref}`;
+                return (
+                  <a
+                    href={`#${target}`}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      scrollToReference(target);
+                    }}
+                    aria-label={`Reference ${ref}`}
+                    className="mx-0.5 inline-grid h-5 min-w-5 -translate-y-0.5 place-items-center rounded-md bg-brand-soft px-1 align-middle text-[11px] font-bold text-brand no-underline transition-colors hover:bg-brand-solid hover:text-on-brand"
+                  >
+                    {ref}
+                  </a>
+                );
+              }
+              return components.a
+                ? (components.a as (props: object) => React.ReactNode)({ href, children })
+                : null;
+            },
+          }
+        : components,
+    [citeId],
+  );
   return (
     <div className="prose max-w-none text-[15px] leading-7 text-fg prose-neutral dark:prose-invert prose-headings:font-display prose-headings:font-bold prose-headings:text-fg prose-p:my-3 prose-blockquote:border-l-brand prose-blockquote:text-fg-2 prose-strong:text-fg prose-li:my-1 prose-hr:border-border">
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-        {content}
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={withCitations}>
+        {citeId ? linkCitations(content) : content}
       </ReactMarkdown>
     </div>
   );

@@ -14,11 +14,25 @@ MEMORY = """Saved memories from the user's earlier conversations. Use them when 
 
 {memory}"""
 
-RAG = """Excerpts from the user's uploaded documents:
+RAG = """Numbered excerpts from the user's uploaded documents:
 
 {context}
 
-Answer from these excerpts when they are relevant and name the file you used. If they don't contain the answer, say so, then answer from general knowledge."""
+Answer from these excerpts when they are relevant and cite them with their number in square brackets, like [1]. If they don't contain the answer, say so, then answer from general knowledge."""
+
+DOCUMENTS_ONLY = """The user asked you to answer ONLY from their uploaded documents. Numbered excerpts:
+
+{context}
+
+Rules:
+- Use only facts stated in these excerpts. Don't add outside knowledge.
+- After every sentence that uses an excerpt, cite it with its number in square brackets, like [2]. Cite several like [1][3].
+- Quote short exact phrases from the excerpts when wording matters.
+- If the excerpts don't contain the answer, say clearly: "I couldn't find this in your documents." Then say what the documents do cover, if anything relevant.
+- Never invent citation numbers that aren't listed above."""
+
+NO_DOCUMENT_MATCH = """The user asked you to answer ONLY from their uploaded documents, but no relevant passages were found.
+Tell the user plainly that you couldn't find this in the selected documents, suggest rephrasing or choosing other documents, and don't answer from general knowledge."""
 
 SEARCH = """Live web search results:
 

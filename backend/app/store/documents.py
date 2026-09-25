@@ -14,6 +14,11 @@ class Match:
     content: str
     source: str
     score: float
+    doc_id: str
+    page: int | None
+    start_line: int | None
+    end_line: int | None
+    line_numbers: list[int] | None = None
 
 
 def _dir(user_id: str):
@@ -38,16 +43,17 @@ def list_documents(user_id: str) -> list[dict]:
     return sorted(docs, key=lambda d: d["created_at"], reverse=True)
 
 
-async def add(user_id: str, source: str, size_bytes: int, chunks: list[str], vectors: list[list[float]]) -> dict:
+async def add(user_id: str, source: str, size_bytes: int, chunks: list[dict], vectors: list[list[float]]) -> dict:
     doc = {
         "id": str(uuid.uuid4()),
         "source": source,
         "chunks": len(chunks),
         "size_bytes": size_bytes,
         "created_at": now_iso(),
-        "preview": chunks[0][:240] if chunks else "",
+        "preview": chunks[0]["content"][:240] if chunks else "",
+        "pages": max((c["page"] or 0 for c in chunks), default=0) or None,
     }
-    payload = {"id": doc["id"], "chunks": [{"content": c, "embedding": _normalize(v)} for c, v in zip(chunks, vectors)]}
+    payload = {"id": doc["id"], "chunks": [{**c, "embedding": _normalize(v)} for c, v in zip(chunks, vectors)]}
     async with lock(f"documents:{user_id}"):
         await asyncio.to_thread(write_json, _doc_path(user_id, doc["id"]), payload)
         index = read_json(_index_path(user_id), [])
@@ -94,12 +100,26 @@ def _load_chunks(user_id: str, doc_id: str) -> list[dict]:
     return chunks
 
 
-def search(user_id: str, query_vector: list[float], k: int = 4) -> list[Match]:
+def search(user_id: str, query_vector: list[float], k: int = 4, doc_ids: list[str] | None = None) -> list[Match]:
     query = _normalize(query_vector)
+    allowed = set(doc_ids) if doc_ids else None
     scored: list[Match] = []
     for doc in list_documents(user_id):
+        if allowed is not None and doc["id"] not in allowed:
+            continue
         for chunk in _load_chunks(user_id, doc["id"]):
             score = sum(a * b for a, b in zip(query, chunk["embedding"]))
-            scored.append(Match(content=chunk["content"], source=doc["source"], score=score))
+            scored.append(
+                Match(
+                    content=chunk["content"],
+                    source=doc["source"],
+                    score=score,
+                    doc_id=doc["id"],
+                    page=chunk.get("page"),
+                    start_line=chunk.get("start_line"),
+                    end_line=chunk.get("end_line"),
+                    line_numbers=chunk.get("line_numbers"),
+                )
+            )
     scored.sort(key=lambda m: m.score, reverse=True)
     return [m for m in scored[:k] if m.score > 0.2]

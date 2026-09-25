@@ -17,6 +17,11 @@ class PreferencesUpdate(BaseModel):
         return value
 
 
+class SourceChoice(BaseModel):
+    mode: Literal["documents", "ai"]
+    document_ids: list[str] = Field(default_factory=list, max_length=50)
+
+
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=12000)
     chat_id: str | None = None
@@ -24,6 +29,7 @@ class ChatRequest(BaseModel):
     model: str = Field(default="openai/gpt-oss-20b", pattern=MODEL_ID)
     think: bool = False
     use_memory: bool = True
+    source: SourceChoice | None = None
 
 
 class RegenerateRequest(BaseModel):
@@ -32,6 +38,7 @@ class RegenerateRequest(BaseModel):
     model: str = Field(default="openai/gpt-oss-20b", pattern=MODEL_ID)
     think: bool = False
     use_memory: bool = True
+    source: SourceChoice | None = None
 
 
 class FeedbackRequest(BaseModel):

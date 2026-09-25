@@ -221,6 +221,10 @@
     mask-image: radial-gradient(ellipse 80% 70% at 50% 0%, #000 40%, transparent 100%);
   }
 
+  [data-flash="true"] {
+    animation: flash 1.6s ease-out;
+  }
+
   .shimmer {
     background: linear-gradient(
       90deg,
@@ -239,6 +243,17 @@
     background-clip: text;
     color: transparent;
     animation: shimmer 2s linear infinite;
+  }
+}
+
+@keyframes flash {
+  0%,
+  40% {
+    box-shadow: 0 0 0 3px var(--brand-ring);
+    border-color: var(--brand);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
   }
 }
 

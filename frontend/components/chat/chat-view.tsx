@@ -12,6 +12,7 @@ import {
   MoreHorizontal,
   PenLine,
   RefreshCw,
+  Sparkles,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -26,7 +27,7 @@ import { Menu } from "@/components/ui/menu";
 import { EmptyState, Skeleton } from "@/components/ui/misc";
 import { ApiError } from "@/lib/api/client";
 import { chatApi } from "@/lib/api/endpoints";
-import type { Message, StreamEvent } from "@/lib/types";
+import type { Message, SourceChoice, StreamEvent } from "@/lib/types";
 import { cn, formatDateTime, greeting } from "@/lib/utils";
 
 const SUGGESTIONS = [
@@ -54,6 +55,26 @@ const SUGGESTIONS = [
   },
 ];
 
+const SOURCE_KEY = "nexus.sources";
+
+function readSourceChoice(chatId: string): SourceChoice | null {
+  try {
+    const map = JSON.parse(window.localStorage.getItem(SOURCE_KEY) ?? "{}");
+    return map[chatId] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function saveSourceChoice(chatId: string, choice: SourceChoice | null) {
+  try {
+    const map = JSON.parse(window.localStorage.getItem(SOURCE_KEY) ?? "{}");
+    if (choice) map[chatId] = choice;
+    else delete map[chatId];
+    window.localStorage.setItem(SOURCE_KEY, JSON.stringify(map));
+  } catch {}
+}
+
 const LIMIT_CODES = ["trial_limit", "chat_limit", "rate_limited"];
 
 type LoadState = "idle" | "loading" | "missing" | "error";
@@ -72,6 +93,8 @@ export function ChatView() {
   const [steps, setSteps] = useState<Step[]>([]);
   const [atBottom, setAtBottom] = useState(true);
   const [notice, setNotice] = useState<{ code: string; message: string } | null>(null);
+  const [remembered, setRemembered] = useState<SourceChoice | null>(null);
+  const pendingRemember = useRef<SourceChoice | null>(null);
   const chatIdRef = useRef<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -111,6 +134,7 @@ export function ChatView() {
       setSteps([]);
       setStreaming(false);
       setNotice(null);
+      setRemembered(routeChat ? readSourceChoice(routeChat) : null);
       if (routeChat) loadChat(routeChat);
       else {
         setMessages([]);
@@ -161,6 +185,10 @@ export function ChatView() {
               setChatId(event.chat_id);
               window.history.replaceState(null, "", `/?c=${event.chat_id}`);
               const now = new Date().toISOString();
+              if (pendingRemember.current) {
+                saveSourceChoice(event.chat_id, pendingRemember.current);
+                pendingRemember.current = null;
+              }
               workspace.upsertChat({
                 id: event.chat_id,
                 title: "New Chat",
@@ -217,6 +245,19 @@ export function ChatView() {
               updated_at: event.message.created_at,
               message_count: messagesCount(event.chat_id),
             });
+            break;
+          case "clarify":
+            terminal = true;
+            updateAssistant(tempId, (m) => ({
+              ...m,
+              pending: false,
+              live: undefined,
+              clarify: {
+                message: event.message,
+                documents: event.documents,
+                question: restore.text ?? "",
+              },
+            }));
             break;
           case "error":
             terminal = true;
@@ -292,15 +333,16 @@ export function ChatView() {
     live: { started: Date.now(), confirmed: 0, chars: 0, estimated: true },
   });
 
-  const send = async (text: string) => {
+  const send = async (text: string, sourceOverride?: SourceChoice) => {
     if (streaming) return;
+    const source = sourceOverride ?? remembered;
     setNotice(null);
     const controller = new AbortController();
     abortRef.current = controller;
     const assistant = tempAssistant();
     const userId = `tmp-u-${Date.now()}`;
     setMessages((current) => [
-      ...current,
+      ...current.filter((m, i) => !m.clarify && !(m.role === "user" && current[i + 1]?.clarify)),
       {
         id: userId,
         role: "user",
@@ -317,6 +359,7 @@ export function ChatView() {
         model: workspace.choice.model,
         think: workspace.think,
         use_memory: workspace.useMemory,
+        source,
       },
       controller.signal,
     );
@@ -330,6 +373,12 @@ export function ChatView() {
     const controller = new AbortController();
     abortRef.current = controller;
     const assistant = tempAssistant();
+    const previous = [...messages].reverse().find((m) => m.role === "assistant" && m.source_mode);
+    const source: SourceChoice | null =
+      remembered ??
+      (previous?.source_mode === "documents" || previous?.source_mode === "ai"
+        ? { mode: previous.source_mode, document_ids: previous.document_ids ?? [] }
+        : null);
     setMessages((current) => {
       const trimmed =
         current[current.length - 1]?.role === "assistant" ? current.slice(0, -1) : current;
@@ -342,10 +391,30 @@ export function ChatView() {
         model: workspace.choice.model,
         think: workspace.think,
         use_memory: workspace.useMemory,
+        source,
       },
       controller.signal,
     );
     await consume(stream, assistant.id, controller, { chatId: id });
+  };
+
+  const chooseSource = (clarifyId: string, choice: SourceChoice, remember: boolean) => {
+    const index = messages.findIndex((m) => m.id === clarifyId);
+    const question = messages[index]?.clarify?.question ?? "";
+    if (!question) return;
+    setMessages((current) => current.filter((_, i) => i !== index && i !== index - 1));
+    if (remember) {
+      setRemembered(choice);
+      if (chatIdRef.current) saveSourceChoice(chatIdRef.current, choice);
+      else pendingRemember.current = choice;
+    }
+    send(question, choice);
+  };
+
+  const forgetSource = () => {
+    setRemembered(null);
+    pendingRemember.current = null;
+    if (chatIdRef.current) saveSourceChoice(chatIdRef.current, null);
   };
 
   const rate = async (message: Message, rating: 1 | -1 | null) => {
@@ -558,6 +627,7 @@ export function ChatView() {
                   showStats={showStats}
                   onRegenerate={index === lastAssistantIndex && !streaming ? regenerate : undefined}
                   onRate={(rating) => rate(message, rating)}
+                  onChooseSource={(choice, remember) => chooseSource(message.id, choice, remember)}
                 />
               );
             })
@@ -603,6 +673,26 @@ export function ChatView() {
           </button>
         )}
         <div className="mx-auto w-full max-w-[880px]">
+          {remembered && (
+            <div className="mb-2 flex items-center justify-center">
+              <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs font-semibold text-fg-2">
+                {remembered.mode === "documents" ? (
+                  <FileSearch className="size-3.5 text-brand" aria-hidden />
+                ) : (
+                  <Sparkles className="size-3.5 text-brand" aria-hidden />
+                )}
+                {remembered.mode === "documents"
+                  ? `Answering from ${remembered.document_ids.length || "all"} document${remembered.document_ids.length === 1 ? "" : "s"} in this chat`
+                  : "Giving general AI answers in this chat"}
+                <button
+                  onClick={forgetSource}
+                  className="font-bold text-brand hover:text-brand-hover"
+                >
+                  Change
+                </button>
+              </span>
+            </div>
+          )}
           {bannerNode}
           <Composer
             ref={composerRef}

@@ -6,11 +6,13 @@ import {
   Check,
   ChevronDown,
   Coins,
+  FileText,
   Globe,
   KeyRound,
   Lightbulb,
   Loader2,
   RefreshCw,
+  Sparkles,
   ThumbsDown,
   ThumbsUp,
   Timer,
@@ -20,7 +22,9 @@ import { memo, useEffect, useState } from "react";
 import { CopyButton } from "@/components/chat/copy-button";
 import { Markdown } from "@/components/chat/markdown";
 import { LogoMark } from "@/components/brand/logo";
-import type { LiveUsage, Message } from "@/lib/types";
+import { ClarifyCard } from "@/components/chat/clarify-card";
+import { References } from "@/components/chat/references";
+import type { LiveUsage, Message, SourceChoice } from "@/lib/types";
 import { cn, formatDuration } from "@/lib/utils";
 
 const KEY_ERRORS = [
@@ -45,6 +49,7 @@ export const MessageItem = memo(function MessageItem({
   showStats,
   onRegenerate,
   onRate,
+  onChooseSource,
 }: {
   message: Message;
   steps?: Step[];
@@ -53,6 +58,7 @@ export const MessageItem = memo(function MessageItem({
   showStats?: boolean;
   onRegenerate?: () => void;
   onRate?: (rating: 1 | -1 | null) => void;
+  onChooseSource?: (choice: SourceChoice, remember: boolean) => void;
 }) {
   if (message.role === "user") {
     return (
@@ -64,12 +70,36 @@ export const MessageItem = memo(function MessageItem({
     );
   }
 
+  const references = (message.sources ?? []).filter((s) => s.type === "document" && s.ref);
+  const otherSources = (message.sources ?? []).filter((s) => !(s.type === "document" && s.ref));
+  if (message.clarify) {
+    return (
+      <div className="flex animate-slide-up gap-3 sm:gap-4">
+        <LogoMark className="mt-0.5 size-8" />
+        <div className="min-w-0 flex-1">
+          <ClarifyCard clarify={message.clarify} onChoose={(c, r) => onChooseSource?.(c, r)} />
+        </div>
+      </div>
+    );
+  }
   const waiting = streaming && !message.content;
   return (
     <div className="group flex animate-slide-up gap-3 sm:gap-4">
       <LogoMark className="mt-0.5 size-8" />
       <div className="min-w-0 flex-1 space-y-3">
         {streaming && message.live && <LiveMeter live={message.live} />}
+        {message.source_mode === "documents" && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-soft px-3 py-1 text-xs font-bold text-brand">
+            <FileText className="size-3.5" aria-hidden />
+            Answer From Your Documents
+          </span>
+        )}
+        {message.source_mode === "ai" && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-xs font-bold text-fg-2">
+            <Sparkles className="size-3.5 text-brand" aria-hidden />
+            General AI Answer
+          </span>
+        )}
         {steps && steps.length > 0 && streaming && <Pipeline steps={steps} />}
         {(message.thinking || (message.think && streaming)) && (
           <ThinkingPanel
@@ -85,11 +115,15 @@ export const MessageItem = memo(function MessageItem({
         )}
         {message.content && (
           <div aria-live={streaming ? "polite" : undefined} aria-busy={streaming || undefined}>
-            <Markdown content={message.content} />
+            <Markdown
+              content={message.content}
+              citeId={references.length ? message.id : undefined}
+            />
             {streaming && <span className="caret" aria-hidden />}
           </div>
         )}
-        {message.sources && message.sources.length > 0 && <Sources sources={message.sources} />}
+        {references.length > 0 && <References sources={references} messageId={message.id} />}
+        {otherSources.length > 0 && <Sources sources={otherSources} />}
         {message.error && (
           <div
             role="alert"

@@ -28,6 +28,33 @@ export interface Source {
   type: "web" | "document";
   title: string;
   url: string | null;
+  ref?: number;
+  document_id?: string;
+  page?: number | null;
+  start_line?: number | null;
+  end_line?: number | null;
+  quote?: string;
+  highlight?: string;
+  highlight_line?: number | null;
+  cited?: boolean;
+}
+
+export interface SourceChoice {
+  mode: "documents" | "ai";
+  document_ids: string[];
+}
+
+export interface ClarifyDocument {
+  id: string;
+  source: string;
+  pages?: number | null;
+  chunks: number;
+}
+
+export interface Clarify {
+  message: string;
+  documents: ClarifyDocument[];
+  question: string;
 }
 
 export interface Message {
@@ -54,6 +81,9 @@ export interface Message {
   error_code?: string | null;
   pending?: boolean;
   live?: LiveUsage;
+  source_mode?: "auto" | "documents" | "ai";
+  document_ids?: string[];
+  clarify?: Clarify;
 }
 
 export interface LiveUsage {
@@ -190,6 +220,7 @@ export type StreamEvent =
       total_tokens: number;
       estimated: boolean;
     }
+  | { type: "clarify"; message: string; documents: ClarifyDocument[] }
   | { type: "error"; code: string; message: string; chat_id?: string; refunded?: boolean };
 
 export interface ModelChoice {
