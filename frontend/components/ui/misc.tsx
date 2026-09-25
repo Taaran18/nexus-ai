@@ -20,10 +20,10 @@ export function Switch({
   return (
     <div className="flex items-start justify-between gap-6 py-4">
       <div className="min-w-0">
-        <label htmlFor={id} className="text-fg text-sm font-semibold">
+        <label htmlFor={id} className="text-sm font-semibold text-fg">
           {label}
         </label>
-        {description && <p className="text-fg-2 mt-0.5 text-sm">{description}</p>}
+        {description && <p className="mt-0.5 text-sm text-fg-2">{description}</p>}
       </div>
       <button
         id={id}
@@ -39,7 +39,7 @@ export function Switch({
       >
         <span
           className={cn(
-            "shadow-card inline-block size-5 rounded-full bg-white transition-transform duration-200",
+            "inline-block size-5 rounded-full bg-white shadow-card transition-transform duration-200",
             checked ? "translate-x-6" : "translate-x-1",
           )}
         />
@@ -67,11 +67,11 @@ export function EmptyState({
 }) {
   return (
     <div className={cn("flex flex-col items-center px-6 py-14 text-center", className)}>
-      <span className="bg-brand-soft text-brand grid size-14 place-items-center rounded-2xl">
+      <span className="grid size-14 place-items-center rounded-2xl bg-brand-soft text-brand">
         {icon}
       </span>
-      <h3 className="text-fg mt-5 text-lg font-bold">{title}</h3>
-      <p className="text-fg-2 mt-1.5 max-w-sm text-sm leading-relaxed">{description}</p>
+      <h3 className="mt-5 text-lg font-bold text-fg">{title}</h3>
+      <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-fg-2">{description}</p>
       {action && <div className="mt-6">{action}</div>}
     </div>
   );
@@ -96,7 +96,7 @@ export function Tabs<T extends string>({
       role="tablist"
       aria-label={ariaLabel}
       className={cn(
-        "bg-surface-2 flex scrollbar-thin gap-1 overflow-x-auto rounded-2xl p-1",
+        "flex scrollbar-thin gap-1 overflow-x-auto rounded-2xl bg-surface-2 p-1",
         className,
       )}
       onKeyDown={(event) => {
@@ -145,11 +145,11 @@ export function PageHeader({
   return (
     <header className="mx-auto flex max-w-3xl flex-col items-center py-8 text-center sm:py-12">
       {eyebrow && (
-        <p className="text-brand text-xs font-bold tracking-[0.18em] uppercase">{eyebrow}</p>
+        <p className="text-xs font-bold tracking-[0.18em] text-brand uppercase">{eyebrow}</p>
       )}
-      <h1 className="text-fg mt-3 text-4xl font-extrabold sm:text-5xl">{title}</h1>
+      <h1 className="mt-3 text-4xl font-extrabold text-fg sm:text-5xl">{title}</h1>
       {description && (
-        <p className="text-fg-2 mt-4 max-w-2xl text-base leading-relaxed sm:text-lg">
+        <p className="mt-4 max-w-2xl text-base leading-relaxed text-fg-2 sm:text-lg">
           {description}
         </p>
       )}

@@ -2,7 +2,7 @@
 
 import { Eye, EyeOff } from "lucide-react";
 import { forwardRef, useId, useState } from "react";
-import { cn, passwordStrength } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 const inputBase =
   "h-11 w-full rounded-xl border border-border bg-surface text-[15px] text-fg placeholder:text-muted transition-colors outline-none hover:border-border-strong focus:border-brand focus:ring-4 focus:ring-brand-ring/30 disabled:opacity-60 aria-[invalid=true]:border-danger sm:text-sm";
@@ -33,18 +33,18 @@ export function Field({ label, hint, error, children, action }: FieldProps) {
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-3">
-        <label htmlFor={id} className="text-fg text-sm font-semibold">
+        <label htmlFor={id} className="text-sm font-semibold text-fg">
           {label}
         </label>
         {action}
       </div>
       {children({ id, "aria-describedby": describedBy, "aria-invalid": error ? true : undefined })}
       {error ? (
-        <p id={`${id}-error`} className="text-danger text-[13px] font-medium">
+        <p id={`${id}-error`} className="text-[13px] font-medium text-danger">
           {error}
         </p>
       ) : hint ? (
-        <p id={`${id}-hint`} className="text-muted text-[13px]">
+        <p id={`${id}-hint`} className="text-[13px] text-muted">
           {hint}
         </p>
       ) : null}
@@ -52,53 +52,27 @@ export function Field({ label, hint, error, children, action }: FieldProps) {
   );
 }
 
-interface PasswordInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  showStrength?: boolean;
-}
-
-export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
-  function PasswordInput({ className, showStrength, value, ...props }, ref) {
-    const [visible, setVisible] = useState(false);
-    const strength = passwordStrength(String(value ?? ""));
-    const colors = ["bg-danger", "bg-danger", "bg-warning", "bg-brand", "bg-success"];
-    return (
-      <div>
-        <div className="relative">
-          <input
-            ref={ref}
-            type={visible ? "text" : "password"}
-            value={value}
-            className={cn(inputBase, "pr-11 pl-3.5", className)}
-            {...props}
-          />
-          <button
-            type="button"
-            onClick={() => setVisible((v) => !v)}
-            aria-label={visible ? "Hide password" : "Show password"}
-            className="text-muted hover:bg-surface-2 hover:text-fg absolute inset-y-0 right-1 my-auto grid size-9 place-items-center rounded-lg transition-colors"
-          >
-            {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-          </button>
-        </div>
-        {showStrength && String(value ?? "").length > 0 && (
-          <div className="mt-2 flex items-center gap-3" aria-live="polite">
-            <div className="flex flex-1 gap-1">
-              {[1, 2, 3, 4].map((step) => (
-                <span
-                  key={step}
-                  className={cn(
-                    "h-1.5 flex-1 rounded-full transition-colors",
-                    strength.level >= step ? colors[strength.level] : "bg-surface-3",
-                  )}
-                />
-              ))}
-            </div>
-            <span className="text-fg-2 w-20 text-right text-xs font-semibold">
-              {strength.label}
-            </span>
-          </div>
-        )}
-      </div>
-    );
-  },
-);
+export const PasswordInput = forwardRef<
+  HTMLInputElement,
+  React.InputHTMLAttributes<HTMLInputElement>
+>(function PasswordInput({ className, ...props }, ref) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className="relative">
+      <input
+        ref={ref}
+        type={visible ? "text" : "password"}
+        className={cn(inputBase, "pr-11 pl-3.5", className)}
+        {...props}
+      />
+      <button
+        type="button"
+        onClick={() => setVisible((v) => !v)}
+        aria-label={visible ? "Hide key" : "Show key"}
+        className="absolute inset-y-0 right-1 my-auto grid size-9 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+      >
+        {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+      </button>
+    </div>
+  );
+});

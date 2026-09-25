@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { KnowledgeView } from "@/components/app/knowledge-view";
 
-export const metadata: Metadata = { title: "Knowledge Base" };
+export const metadata: Metadata = {
+  title: "Knowledge Base",
+  robots: { index: false, follow: false },
+};
 
 export default function Page() {
   return (

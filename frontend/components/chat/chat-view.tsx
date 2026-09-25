@@ -4,6 +4,7 @@ import {
   ArrowDown,
   Brain,
   FileSearch,
+  Gauge,
   Globe,
   Lightbulb,
   MessageSquareOff,
@@ -16,7 +17,6 @@ import { useChatActions } from "@/components/app/chat-actions";
 import { useWorkspace } from "@/components/app/workspace-provider";
 import { Composer, type ComposerHandle } from "@/components/chat/composer";
 import { MessageItem, type Step } from "@/components/chat/message-item";
-import { useAuth } from "@/components/providers/auth-provider";
 import { useToast } from "@/components/providers/toast-provider";
 import { LinkButton } from "@/components/ui/button";
 import { Menu } from "@/components/ui/menu";
@@ -24,7 +24,7 @@ import { EmptyState, Skeleton } from "@/components/ui/misc";
 import { ApiError } from "@/lib/api/client";
 import { chatApi } from "@/lib/api/endpoints";
 import type { Message, StreamEvent } from "@/lib/types";
-import { cn, firstName, greeting } from "@/lib/utils";
+import { cn, formatDateTime, greeting } from "@/lib/utils";
 
 const SUGGESTIONS = [
   {
@@ -51,12 +51,13 @@ const SUGGESTIONS = [
   },
 ];
 
+const LIMIT_CODES = ["trial_limit", "chat_limit", "rate_limited"];
+
 type LoadState = "idle" | "loading" | "missing" | "error";
 
 export function ChatView() {
   const params = useSearchParams();
   const routeChat = params.get("c");
-  const { user } = useAuth();
   const toast = useToast();
   const workspace = useWorkspace();
   const actions = useChatActions();
@@ -67,6 +68,7 @@ export function ChatView() {
   const [streaming, setStreaming] = useState(false);
   const [steps, setSteps] = useState<Step[]>([]);
   const [atBottom, setAtBottom] = useState(true);
+  const [notice, setNotice] = useState<{ code: string; message: string } | null>(null);
   const chatIdRef = useRef<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -105,6 +107,7 @@ export function ChatView() {
       setChatId(routeChat);
       setSteps([]);
       setStreaming(false);
+      setNotice(null);
       if (routeChat) loadChat(routeChat);
       else {
         setMessages([]);
@@ -137,6 +140,7 @@ export function ChatView() {
     stream: AsyncGenerator<StreamEvent>,
     tempId: string,
     controller: AbortController,
+    restore: { userId?: string; text?: string; chatId?: string | null },
   ) => {
     setStreaming(true);
     setSteps([]);
@@ -149,7 +153,7 @@ export function ChatView() {
             if (!chatIdRef.current) {
               chatIdRef.current = event.chat_id;
               setChatId(event.chat_id);
-              window.history.replaceState(null, "", `/chat?c=${event.chat_id}`);
+              window.history.replaceState(null, "", `/?c=${event.chat_id}`);
               const now = new Date().toISOString();
               workspace.upsertChat({
                 id: event.chat_id,
@@ -202,6 +206,11 @@ export function ChatView() {
     } catch (error) {
       if ((error as Error).name === "AbortError") {
         updateAssistant(tempId, (m) => ({ ...m, stopped: true, pending: false }));
+      } else if (error instanceof ApiError && LIMIT_CODES.includes(error.code)) {
+        setMessages((current) => current.filter((m) => m.id !== tempId && m.id !== restore.userId));
+        if (restore.text) composerRef.current?.fill(restore.text);
+        if (!restore.userId && restore.chatId) loadChat(restore.chatId);
+        setNotice({ code: error.code, message: error.message });
       } else {
         const message =
           error instanceof ApiError
@@ -213,6 +222,7 @@ export function ChatView() {
       if (abortRef.current === controller) abortRef.current = null;
       setStreaming(false);
       setSteps([]);
+      workspace.refreshUsage();
     }
   };
 
@@ -233,13 +243,15 @@ export function ChatView() {
 
   const send = async (text: string) => {
     if (streaming) return;
+    setNotice(null);
     const controller = new AbortController();
     abortRef.current = controller;
     const assistant = tempAssistant();
+    const userId = `tmp-u-${Date.now()}`;
     setMessages((current) => [
       ...current,
       {
-        id: `tmp-u-${Date.now()}`,
+        id: userId,
         role: "user",
         content: text,
         created_at: new Date().toISOString(),
@@ -257,12 +269,13 @@ export function ChatView() {
       },
       controller.signal,
     );
-    await consume(stream, assistant.id, controller);
+    await consume(stream, assistant.id, controller, { userId, text, chatId: chatIdRef.current });
   };
 
   const regenerate = async () => {
     const id = chatIdRef.current;
     if (!id || streaming) return;
+    setNotice(null);
     const controller = new AbortController();
     abortRef.current = controller;
     const assistant = tempAssistant();
@@ -281,7 +294,7 @@ export function ChatView() {
       },
       controller.signal,
     );
-    await consume(stream, assistant.id, controller);
+    await consume(stream, assistant.id, controller, { chatId: id });
   };
 
   const rate = async (message: Message, rating: 1 | -1 | null) => {
@@ -309,7 +322,7 @@ export function ChatView() {
           icon={<MessageSquareOff className="size-7" />}
           title="Chat Not Found"
           description="This chat doesn't exist or was deleted. Start a new one or pick another from the sidebar."
-          action={<LinkButton href="/chat">Start a New Chat</LinkButton>}
+          action={<LinkButton href="/">Start a New Chat</LinkButton>}
         />
       </div>
     );
@@ -325,7 +338,7 @@ export function ChatView() {
           action={
             <button
               onClick={() => routeChat && loadChat(routeChat)}
-              className="text-brand hover:text-brand-hover font-bold"
+              className="font-bold text-brand hover:text-brand-hover"
             >
               Try Again
             </button>
@@ -336,25 +349,71 @@ export function ChatView() {
   }
 
   const empty = !chatId && messages.length === 0;
+  const usage = workspace.usage;
+  const userTurns = messages.filter((m) => m.role === "user").length;
+  const dailyExhausted = usage ? usage.messages_left <= 0 : false;
+  const chatFull = Boolean(chatId) && usage ? userTurns >= usage.max_turns_per_chat : false;
+  const blocked = !streaming && (dailyExhausted || chatFull);
+  const banner = dailyExhausted
+    ? {
+        tone: "danger" as const,
+        text: `You've used today's ${usage?.messages_limit} trial messages. You can chat again after ${usage ? formatDateTime(usage.resets_at) : "midnight UTC"}.`,
+        action: false,
+      }
+    : chatFull
+      ? {
+          tone: "think" as const,
+          text: `This chat has reached the trial limit of ${usage?.max_turns_per_chat} messages. Start a new chat to keep going.`,
+          action: true,
+        }
+      : notice
+        ? { tone: "think" as const, text: notice.message, action: notice.code === "chat_limit" }
+        : null;
+  const usageLine = usage
+    ? `${usage.messages_left} of ${usage.messages_limit} trial messages left today${chatId ? ` · ${Math.max(0, usage.max_turns_per_chat - userTurns)} left in this chat` : ""}`
+    : null;
+  const bannerNode = banner && (
+    <div
+      role="status"
+      className={cn(
+        "mb-3 flex flex-col gap-3 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center",
+        banner.tone === "danger"
+          ? "border-danger/30 bg-danger-soft"
+          : "border-think/30 bg-think-soft",
+      )}
+    >
+      <Gauge
+        className={cn("size-5 shrink-0", banner.tone === "danger" ? "text-danger" : "text-think")}
+        aria-hidden
+      />
+      <p className="flex-1 text-sm font-medium text-fg">{banner.text}</p>
+      {banner.action && (
+        <LinkButton href="/" size="sm" className="self-start sm:self-auto">
+          Start a New Chat
+        </LinkButton>
+      )}
+    </div>
+  );
 
   if (empty) {
     return (
       <div className="flex h-full scrollbar-thin flex-col overflow-y-auto">
         <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center px-4 py-10 sm:px-6">
           <div className="text-center">
-            <h1 className="text-fg text-4xl font-extrabold sm:text-5xl">
-              {greeting()}, {firstName(user?.name)}
-            </h1>
-            <p className="text-fg-2 mt-3 text-lg">What Can I Help You With Today?</p>
+            <h1 className="text-4xl font-extrabold text-fg sm:text-5xl">{greeting()}</h1>
+            <p className="mt-3 text-lg text-fg-2">What Can I Help You With Today?</p>
           </div>
           <div className="mt-9">
+            {bannerNode}
             <Composer
               ref={composerRef}
               onSend={send}
               onStop={() => abortRef.current?.abort()}
               streaming={streaming}
+              disabled={blocked}
               autoFocus
             />
+            {usageLine && <p className="mt-2 text-center text-xs text-muted">{usageLine}</p>}
           </div>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             {SUGGESTIONS.map((s) => (
@@ -364,7 +423,7 @@ export function ChatView() {
                   if (s.think && !workspace.think) workspace.setThink(true);
                   composerRef.current?.fill(s.prompt);
                 }}
-                className="group border-border bg-surface shadow-card hover:border-brand/40 flex items-center gap-3 rounded-2xl border p-4 text-left transition-all hover:-translate-y-0.5"
+                className="group flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 text-left shadow-card transition-all hover:-translate-y-0.5 hover:border-brand/40"
               >
                 <span
                   className={cn(
@@ -374,13 +433,13 @@ export function ChatView() {
                 >
                   <s.icon className="size-5" aria-hidden />
                 </span>
-                <span className="text-fg text-sm font-bold">{s.title}</span>
+                <span className="text-sm font-bold text-fg">{s.title}</span>
               </button>
             ))}
           </div>
           {workspace.memory.items.length > 0 && workspace.useMemory && (
-            <p className="text-muted mt-6 flex items-center justify-center gap-2 text-center text-sm">
-              <Brain className="text-brand size-4" aria-hidden />
+            <p className="mt-6 flex items-center justify-center gap-2 text-center text-sm text-muted">
+              <Brain className="size-4 text-brand" aria-hidden />
               Nexus remembers {workspace.memory.items.length} saved chat
               {workspace.memory.items.length > 1 ? "s" : ""}.
             </p>
@@ -394,13 +453,13 @@ export function ChatView() {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="border-border flex h-14 shrink-0 items-center justify-between gap-3 border-b px-4 sm:px-6">
-        <h1 className="text-fg min-w-0 truncate text-base font-bold">
+      <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border px-4 sm:px-6">
+        <h1 className="min-w-0 truncate text-base font-bold text-fg">
           {chat?.title ?? "New Chat"}
         </h1>
         <div className="flex items-center gap-2">
           {chat?.in_memory && (
-            <span className="bg-brand-soft text-brand hidden items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold sm:inline-flex">
+            <span className="hidden items-center gap-1.5 rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand sm:inline-flex">
               <Brain className="size-3.5" aria-hidden />
               In Memory
             </span>
@@ -413,7 +472,7 @@ export function ChatView() {
                 <button
                   {...props}
                   aria-label="Chat options"
-                  className="text-fg-2 hover:bg-surface-2 hover:text-fg grid size-9 place-items-center rounded-xl"
+                  className="grid size-9 place-items-center rounded-xl text-fg-2 hover:bg-surface-2 hover:text-fg"
                 >
                   <MoreHorizontal className="size-5" />
                 </button>
@@ -465,21 +524,24 @@ export function ChatView() {
               });
             }}
             aria-label="Jump to latest message"
-            className="border-border bg-surface text-fg shadow-pop hover:bg-surface-2 absolute -top-12 left-1/2 grid size-10 -translate-x-1/2 place-items-center rounded-full border"
+            className="absolute -top-12 left-1/2 grid size-10 -translate-x-1/2 place-items-center rounded-full border border-border bg-surface text-fg shadow-pop hover:bg-surface-2"
           >
             <ArrowDown className="size-5" />
           </button>
         )}
         <div className="mx-auto w-full max-w-[880px]">
+          {bannerNode}
           <Composer
             ref={composerRef}
             onSend={send}
             onStop={() => abortRef.current?.abort()}
             streaming={streaming}
+            disabled={blocked}
             placeholder="Reply to Nexus"
           />
-          <p className="text-muted mt-2 text-center text-xs">
+          <p className="mt-2 text-center text-xs text-muted">
             Nexus can make mistakes. Check important information.
+            {usageLine && <span className="max-sm:block"> {usageLine}.</span>}
           </p>
         </div>
       </div>

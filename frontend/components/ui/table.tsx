@@ -3,14 +3,14 @@ import { cn } from "@/lib/utils";
 export function Table({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
     <div className={cn("scrollbar-thin overflow-x-auto", className)}>
-      <table className="text-fg w-full border-collapse text-left text-sm">{children}</table>
+      <table className="w-full border-collapse text-left text-sm text-fg">{children}</table>
     </div>
   );
 }
 
 export function THead({ children }: { children: React.ReactNode }) {
   return (
-    <thead className="border-border bg-bg-subtle text-muted border-y text-[12px] font-bold tracking-wider uppercase">
+    <thead className="border-y border-border bg-bg-subtle text-[12px] font-bold tracking-wider text-muted uppercase">
       {children}
     </thead>
   );
@@ -28,7 +28,7 @@ export function Tr({ className, ...props }: React.HTMLAttributes<HTMLTableRowEle
   return (
     <tr
       className={cn(
-        "border-border even:bg-bg-subtle/60 hover:bg-brand-soft border-b transition-colors last:border-0",
+        "border-b border-border transition-colors last:border-0 even:bg-bg-subtle/60 hover:bg-brand-soft",
         className,
       )}
       {...props}
@@ -39,7 +39,7 @@ export function Tr({ className, ...props }: React.HTMLAttributes<HTMLTableRowEle
 export function Td({ className, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) {
   return (
     <td
-      className={cn("text-fg px-5 py-3.5 align-middle first:pl-6 last:pr-6", className)}
+      className={cn("px-5 py-3.5 align-middle text-fg first:pl-6 last:pr-6", className)}
       {...props}
     />
   );

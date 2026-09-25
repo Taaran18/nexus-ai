@@ -10,9 +10,8 @@ class Settings(BaseSettings):
 
     environment: str = Field(default="development", alias="ENVIRONMENT")
     groq_api_key: str = Field(alias="GROQ_API_KEY")
-    jwt_secret: str = Field(alias="JWT_SECRET")
     huggingface_api_key: str = Field(alias="HUGGINGFACE_API_KEY")
-    encryption_key: str = Field(default="", alias="ENCRYPTION_KEY")
+    encryption_key: str = Field(alias="ENCRYPTION_KEY")
     allowed_origins: str = Field(default="http://localhost:3000", alias="ALLOWED_ORIGINS")
     data_dir: Path = Field(default=Path("./data"), alias="DATA_DIR")
     site_url: str = Field(default="http://localhost:3000", alias="SITE_URL")
@@ -23,13 +22,10 @@ class Settings(BaseSettings):
     jev_model: str = Field(default="", alias="JEV_MODEL")
     think_fallback_model: str = Field(default="openai/gpt-oss-120b", alias="THINK_FALLBACK_MODEL")
     router_model: str = Field(default="openai/gpt-oss-20b", alias="ROUTER_MODEL")
-    access_token_minutes: int = Field(default=15, alias="ACCESS_TOKEN_MINUTES")
-    refresh_token_days: int = Field(default=30, alias="REFRESH_TOKEN_DAYS")
-    smtp_host: str = Field(default="", alias="SMTP_HOST")
-    smtp_port: int = Field(default=587, alias="SMTP_PORT")
-    smtp_user: str = Field(default="", alias="SMTP_USER")
-    smtp_password: str = Field(default="", alias="SMTP_PASSWORD")
-    smtp_from: str = Field(default="", alias="SMTP_FROM")
+    trial_daily_messages: int = Field(default=25, alias="TRIAL_DAILY_MESSAGES")
+    trial_max_turns_per_chat: int = Field(default=15, alias="TRIAL_MAX_TURNS_PER_CHAT")
+    trial_daily_uploads: int = Field(default=5, alias="TRIAL_DAILY_UPLOADS")
+    trust_proxy: bool = Field(default=True, alias="TRUST_PROXY")
 
     @property
     def origins(self) -> list[str]:
@@ -38,10 +34,6 @@ class Settings(BaseSettings):
     @property
     def jev_enabled(self) -> bool:
         return bool(self.jev_base_url and self.jev_api_key and self.jev_model)
-
-    @property
-    def smtp_enabled(self) -> bool:
-        return bool(self.smtp_host and self.smtp_from)
 
     @property
     def is_production(self) -> bool:

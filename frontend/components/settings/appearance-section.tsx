@@ -76,10 +76,10 @@ export function AppearanceSection() {
                     </div>
                   </div>
                 </div>
-                <div className="border-border bg-surface flex items-center justify-between gap-3 border-t px-4 py-3">
+                <div className="flex items-center justify-between gap-3 border-t border-border bg-surface px-4 py-3">
                   <span>
-                    <span className="text-fg block text-sm font-bold">{theme.label}</span>
-                    <span className="text-muted block text-xs">{theme.description}</span>
+                    <span className="block text-sm font-bold text-fg">{theme.label}</span>
+                    <span className="block text-xs text-muted">{theme.description}</span>
                   </span>
                   <span
                     className={cn(

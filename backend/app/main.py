@@ -5,7 +5,7 @@ import uuid
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import account, auth, chat, chats, documents, folders, memory, models
+from app.api import chat, chats, documents, folders, me, memory, models
 from app.config import settings
 from app.core.errors import register_error_handlers
 from app.store.files import healthy
@@ -26,7 +26,7 @@ app.add_middleware(
     allow_origins=settings.origins,
     allow_credentials=False,
     allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
+    allow_headers=["Content-Type", "X-Request-ID", "X-Visitor-Id"],
     expose_headers=["Content-Disposition", "X-Request-ID"],
     max_age=600,
 )
@@ -56,8 +56,7 @@ async def request_context(request: Request, call_next):
 register_error_handlers(app)
 
 for router in (
-    auth.router,
-    account.router,
+    me.router,
     chat.router,
     chats.router,
     folders.router,

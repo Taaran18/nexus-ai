@@ -1,10 +1,9 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { useAuth } from "@/components/providers/auth-provider";
 import { useToast } from "@/components/providers/toast-provider";
 import { ApiError } from "@/lib/api/client";
-import { accountApi, chatApi, folderApi, memoryApi, modelApi } from "@/lib/api/endpoints";
+import { chatApi, folderApi, meApi, memoryApi, modelApi } from "@/lib/api/endpoints";
 import type {
   Catalog,
   ChatSummary,
@@ -14,6 +13,7 @@ import type {
   Preferences,
   ProviderInfo,
   ProviderModel,
+  Usage,
 } from "@/lib/types";
 
 interface WorkspaceValue {
@@ -29,6 +29,11 @@ interface WorkspaceValue {
   think: boolean;
   useMemory: boolean;
   preferences: Preferences;
+  usage: Usage | null;
+  trialId: string | null;
+  offline: boolean;
+  refreshUsage: () => Promise<void>;
+  retry: () => void;
   setChoice: (choice: ModelChoice) => void;
   setThink: (value: boolean) => void;
   updatePreferences: (changes: Preferences) => Promise<void>;
@@ -67,8 +72,12 @@ function readStoredChoice(): ModelChoice | null {
 }
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
-  const { user, setUser } = useAuth();
   const toast = useToast();
+  const [preferences, setPreferences] = useState<Preferences>({});
+  const [usage, setUsage] = useState<Usage | null>(null);
+  const [trialId, setTrialId] = useState<string | null>(null);
+  const [offline, setOffline] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [chats, setChats] = useState<ChatSummary[]>([]);
   const [chatsLoading, setChatsLoading] = useState(true);
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -82,7 +91,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [providerModels, setProviderModelsState] = useState<Record<string, ProviderModel[]>>({});
   const [choice, setChoiceState] = useState<ModelChoice>(DEFAULT_CHOICE);
   const [think, setThinkState] = useState(false);
-  const preferences = useMemo(() => user?.preferences ?? {}, [user]);
   const useMemory = preferences.use_memory !== false;
 
   const fail = useCallback(
@@ -108,6 +116,14 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, []);
 
+  const refreshUsage = useCallback(async () => {
+    try {
+      setUsage(await meApi.usage());
+    } catch {}
+  }, []);
+
+  const retry = useCallback(() => setAttempt((n) => n + 1), []);
+
   const refreshProviders = useCallback(async () => {
     try {
       setProviders(await modelApi.providers());
@@ -116,6 +132,15 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
+      meApi
+        .get()
+        .then((me) => {
+          setPreferences(me.preferences ?? {});
+          setTrialId(me.id);
+          setOffline(false);
+        })
+        .catch((error) => setOffline(error instanceof ApiError && error.status === 0));
+      refreshUsage();
       refreshChats();
       refreshMemory();
       refreshProviders();
@@ -141,7 +166,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       } catch {}
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [refreshChats, refreshMemory, refreshProviders]);
+  }, [refreshChats, refreshMemory, refreshProviders, refreshUsage, attempt]);
 
   useEffect(() => {
     if (!catalog || choice.provider !== "groq") return;
@@ -174,14 +199,14 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const updatePreferences = useCallback(
     async (changes: Preferences) => {
       try {
-        const updated = await accountApi.update({ preferences: changes });
-        setUser(updated);
+        const updated = await meApi.updatePreferences(changes);
+        setPreferences(updated.preferences ?? {});
       } catch (error) {
         fail("Couldn't Save Your Preferences", error);
         throw error;
       }
     },
-    [fail, setUser],
+    [fail],
   );
 
   const upsertChat = useCallback((chat: ChatSummary) => {
@@ -357,6 +382,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       think,
       useMemory,
       preferences,
+      usage,
+      trialId,
+      offline,
+      refreshUsage,
+      retry,
       setChoice,
       setThink,
       updatePreferences,
@@ -389,6 +419,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       think,
       useMemory,
       preferences,
+      usage,
+      trialId,
+      offline,
+      refreshUsage,
+      retry,
       setChoice,
       setThink,
       updatePreferences,

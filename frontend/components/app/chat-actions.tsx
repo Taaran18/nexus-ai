@@ -163,7 +163,7 @@ export function ChatActionsProvider({ children }: { children: React.ReactNode })
     [chatMenu, folderMenu],
   );
 
-  const activeChatId = pathname === "/chat" ? params.get("c") : null;
+  const activeChatId = pathname === "/" ? params.get("c") : null;
 
   return (
     <ChatActionsContext.Provider value={value}>
@@ -203,7 +203,7 @@ export function ChatActionsProvider({ children }: { children: React.ReactNode })
           if (dialog?.kind !== "delete") return;
           const id = dialog.chat.id;
           await workspace.deleteChat(id);
-          if (activeChatId === id) router.replace("/chat");
+          if (activeChatId === id) router.replace("/");
         }}
       />
       <ConfirmDialog
@@ -444,7 +444,7 @@ function FolderDialog({
           )}
         </Field>
         <fieldset>
-          <legend className="text-fg text-sm font-semibold">Colour</legend>
+          <legend className="text-sm font-semibold text-fg">Colour</legend>
           <div className="mt-2.5 flex flex-wrap gap-2.5">
             {FOLDER_COLORS.map((c) => (
               <button
@@ -454,8 +454,8 @@ function FolderDialog({
                 aria-label={c.name}
                 aria-pressed={color === c.value}
                 className={cn(
-                  "ring-offset-surface size-9 rounded-xl ring-offset-2 transition-transform hover:scale-110",
-                  color === c.value && "ring-fg ring-2",
+                  "size-9 rounded-xl ring-offset-2 ring-offset-surface transition-transform hover:scale-110",
+                  color === c.value && "ring-2 ring-fg",
                 )}
                 style={{ backgroundColor: c.value }}
               />

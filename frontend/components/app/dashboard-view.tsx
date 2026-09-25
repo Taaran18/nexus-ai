@@ -20,7 +20,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useChatActions } from "@/components/app/chat-actions";
 import { PageFrame } from "@/components/app/page-frame";
 import { useWorkspace } from "@/components/app/workspace-provider";
-import { useAuth } from "@/components/providers/auth-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
@@ -28,12 +27,11 @@ import { Menu } from "@/components/ui/menu";
 import { EmptyState, PageHeader, Skeleton } from "@/components/ui/misc";
 import { Table, Td, Th, THead, Tr } from "@/components/ui/table";
 import { ApiError } from "@/lib/api/client";
-import { accountApi } from "@/lib/api/endpoints";
+import { meApi } from "@/lib/api/endpoints";
 import type { Overview } from "@/lib/types";
-import { firstName, formatBytes, formatNumber, greeting, relativeTime } from "@/lib/utils";
+import { formatBytes, formatDateTime, formatNumber, greeting, relativeTime } from "@/lib/utils";
 
 export function DashboardView() {
-  const { user } = useAuth();
   const workspace = useWorkspace();
   const actions = useChatActions();
   const [overview, setOverview] = useState<Overview | null>(null);
@@ -42,7 +40,7 @@ export function DashboardView() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      setOverview(await accountApi.overview());
+      setOverview(await meApi.overview());
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Try again in a moment.");
     }
@@ -87,11 +85,11 @@ export function DashboardView() {
     <PageFrame>
       <PageHeader
         eyebrow="Overview"
-        title={`${greeting()}, ${firstName(user?.name)}`}
+        title={greeting()}
         description="Pick up a recent chat, add documents for Nexus to read or tune how it answers you."
         actions={
           <>
-            <LinkButton href="/chat" size="lg">
+            <LinkButton href="/" size="lg">
               <MessageSquarePlus className="size-5" aria-hidden />
               New Chat
             </LinkButton>
@@ -106,9 +104,9 @@ export function DashboardView() {
       {error && (
         <div
           role="alert"
-          className="border-danger/30 bg-danger-soft mb-6 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center"
+          className="mb-6 flex flex-col gap-3 rounded-2xl border border-danger/30 bg-danger-soft p-4 sm:flex-row sm:items-center"
         >
-          <p className="text-fg flex-1 text-sm font-medium">
+          <p className="flex-1 text-sm font-medium text-fg">
             We couldn&apos;t load your overview. {error}
           </p>
           <Button size="sm" variant="outline" onClick={load}>
@@ -122,19 +120,19 @@ export function DashboardView() {
         {cards.map((card) => (
           <Card key={card.label} className="p-5 sm:p-6">
             <div className="flex items-center justify-between">
-              <p className="text-fg-2 text-sm font-bold">{card.label}</p>
-              <span className="bg-brand-soft text-brand grid size-10 place-items-center rounded-2xl">
+              <p className="text-sm font-bold text-fg-2">{card.label}</p>
+              <span className="grid size-10 place-items-center rounded-2xl bg-brand-soft text-brand">
                 <card.icon className="size-5" aria-hidden />
               </span>
             </div>
             {card.value === undefined ? (
               <Skeleton className="mt-4 h-9 w-16" />
             ) : (
-              <p className="font-display text-fg mt-3 text-4xl font-extrabold">
+              <p className="mt-3 font-display text-4xl font-extrabold text-fg">
                 {formatNumber(card.value)}
               </p>
             )}
-            <p className="text-muted mt-1 text-[13px]">{card.hint}</p>
+            <p className="mt-1 text-[13px] text-muted">{card.hint}</p>
           </Card>
         ))}
       </section>
@@ -146,7 +144,7 @@ export function DashboardView() {
             description="Your latest conversations, most recent first."
             icon={<MessageSquare className="size-5" />}
             action={
-              <LinkButton href="/chat" variant="outline" size="sm">
+              <LinkButton href="/" variant="outline" size="sm">
                 New Chat
               </LinkButton>
             }
@@ -162,7 +160,7 @@ export function DashboardView() {
               icon={<MessagesSquare className="size-7" />}
               title="No Chats Yet"
               description="Ask your first question and it will show up here."
-              action={<LinkButton href="/chat">Start Chatting</LinkButton>}
+              action={<LinkButton href="/">Start Chatting</LinkButton>}
             />
           ) : (
             <>
@@ -185,12 +183,12 @@ export function DashboardView() {
                       <Tr key={chat.id}>
                         <Td className="max-w-[360px]">
                           <Link
-                            href={`/chat?c=${chat.id}`}
-                            className="text-fg hover:text-brand flex items-center gap-2 font-semibold"
+                            href={`/?c=${chat.id}`}
+                            className="flex items-center gap-2 font-semibold text-fg hover:text-brand"
                           >
                             {chat.in_memory && (
                               <Brain
-                                className="text-brand size-4 shrink-0"
+                                className="size-4 shrink-0 text-brand"
                                 aria-label="Saved to memory"
                               />
                             )}
@@ -199,7 +197,7 @@ export function DashboardView() {
                         </Td>
                         <Td>
                           {folder ? (
-                            <span className="text-fg-2 inline-flex items-center gap-2">
+                            <span className="inline-flex items-center gap-2 text-fg-2">
                               <span
                                 className="size-2.5 rounded-full"
                                 style={{ backgroundColor: folder.color }}
@@ -211,8 +209,8 @@ export function DashboardView() {
                             <span className="text-muted">—</span>
                           )}
                         </Td>
-                        <Td className="text-fg-2 text-right tabular-nums">{chat.message_count}</Td>
-                        <Td className="text-fg-2 whitespace-nowrap">
+                        <Td className="text-right text-fg-2 tabular-nums">{chat.message_count}</Td>
+                        <Td className="whitespace-nowrap text-fg-2">
                           {relativeTime(chat.updated_at)}
                         </Td>
                         <Td>
@@ -223,12 +221,12 @@ export function DashboardView() {
                   })}
                 </tbody>
               </Table>
-              <ul className="divide-border border-border divide-y border-t md:hidden">
+              <ul className="divide-y divide-border border-t border-border md:hidden">
                 {recent.map((chat) => (
                   <li key={chat.id} className="flex items-center gap-3 px-5 py-3.5">
-                    <Link href={`/chat?c=${chat.id}`} className="min-w-0 flex-1">
-                      <span className="text-fg block truncate font-semibold">{chat.title}</span>
-                      <span className="text-muted text-[13px]">
+                    <Link href={`/?c=${chat.id}`} className="min-w-0 flex-1">
+                      <span className="block truncate font-semibold text-fg">{chat.title}</span>
+                      <span className="text-[13px] text-muted">
                         {chat.message_count} messages · {relativeTime(chat.updated_at)}
                       </span>
                     </Link>
@@ -248,12 +246,25 @@ export function DashboardView() {
               icon={<Sparkles className="size-5" />}
             />
             <CardBody className="space-y-3">
+              <SetupRow
+                label="Trial Messages Today"
+                value={
+                  workspace.usage
+                    ? `${workspace.usage.messages_left} of ${workspace.usage.messages_limit} Left`
+                    : "Checking"
+                }
+                hint={
+                  workspace.usage
+                    ? `Resets ${formatDateTime(workspace.usage.resets_at)}`
+                    : undefined
+                }
+              />
               <SetupRow label="Default Model" value={workspace.choice.label} />
               <SetupRow
                 label="Think Mode"
                 value={
                   <span className="inline-flex items-center gap-1.5">
-                    <Lightbulb className="text-think size-4" aria-hidden />
+                    <Lightbulb className="size-4 text-think" aria-hidden />
                     {workspace.think ? "On" : "Off"}
                   </span>
                 }
@@ -288,7 +299,7 @@ export function DashboardView() {
               {!overview ? (
                 <Skeleton className="h-20" />
               ) : overview.recent_documents.length === 0 ? (
-                <p className="border-border text-fg-2 rounded-2xl border border-dashed p-5 text-center text-sm">
+                <p className="rounded-2xl border border-dashed border-border p-5 text-center text-sm text-fg-2">
                   No documents yet. Upload a PDF or notes and ask Nexus about them.
                 </p>
               ) : (
@@ -296,14 +307,14 @@ export function DashboardView() {
                   {overview.recent_documents.map((doc) => (
                     <li
                       key={doc.id}
-                      className="bg-bg-subtle flex items-center gap-3 rounded-2xl px-4 py-3"
+                      className="flex items-center gap-3 rounded-2xl bg-bg-subtle px-4 py-3"
                     >
-                      <FileText className="text-brand size-5 shrink-0" aria-hidden />
+                      <FileText className="size-5 shrink-0 text-brand" aria-hidden />
                       <span className="min-w-0 flex-1">
-                        <span className="text-fg block truncate text-sm font-semibold">
+                        <span className="block truncate text-sm font-semibold text-fg">
                           {doc.source}
                         </span>
-                        <span className="text-muted text-xs">
+                        <span className="text-xs text-muted">
                           {formatBytes(doc.size_bytes)} · {relativeTime(doc.created_at)}
                         </span>
                       </span>
@@ -313,7 +324,7 @@ export function DashboardView() {
               )}
               <Link
                 href="/knowledge"
-                className="text-brand hover:text-brand-hover mt-4 inline-flex items-center gap-1.5 text-sm font-bold"
+                className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-brand hover:text-brand-hover"
               >
                 Open Knowledge Base
                 <ArrowRight className="size-4" aria-hidden />
@@ -336,11 +347,11 @@ function SetupRow({
   hint?: string;
 }) {
   return (
-    <div className="bg-bg-subtle flex items-start justify-between gap-4 rounded-2xl px-4 py-3">
-      <span className="text-fg-2 text-sm">{label}</span>
+    <div className="flex items-start justify-between gap-4 rounded-2xl bg-bg-subtle px-4 py-3">
+      <span className="text-sm text-fg-2">{label}</span>
       <span className="text-right">
-        <span className="text-fg block text-sm font-bold">{value}</span>
-        {hint && <span className="text-muted block text-xs">{hint}</span>}
+        <span className="block text-sm font-bold text-fg">{value}</span>
+        {hint && <span className="block text-xs text-muted">{hint}</span>}
       </span>
     </div>
   );
@@ -361,7 +372,7 @@ function ChatRowMenu({
         <button
           {...props}
           aria-label={`Options for ${title}`}
-          className="text-muted hover:bg-surface-2 hover:text-fg grid size-9 place-items-center rounded-xl"
+          className="grid size-9 place-items-center rounded-xl text-muted hover:bg-surface-2 hover:text-fg"
         >
           <MoreHorizontal className="size-5" />
         </button>

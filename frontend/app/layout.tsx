@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
-import { AuthProvider } from "@/components/providers/auth-provider";
+import { JsonLd } from "@/components/marketing/json-ld";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { ToastProvider } from "@/components/providers/toast-provider";
 import { site } from "@/lib/config";
@@ -57,16 +57,35 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         className={`${inter.variable} ${jakarta.variable} ${mono.variable} min-h-dvh font-sans antialiased`}
       >
+        <JsonLd
+          data={[
+            {
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: site.name,
+              url: site.url,
+              description: site.description,
+            },
+            {
+              "@context": "https://schema.org",
+              "@type": "WebApplication",
+              name: site.name,
+              url: site.url,
+              applicationCategory: "ProductivityApplication",
+              operatingSystem: "Web",
+              description: site.description,
+              offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+            },
+          ]}
+        />
         <a
           href="#main"
-          className="bg-brand-solid text-on-brand sr-only z-[100] rounded-xl px-4 py-2 font-semibold focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+          className="sr-only z-[100] rounded-xl bg-brand-solid px-4 py-2 font-semibold text-on-brand focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
         >
           Skip to Content
         </a>
         <ThemeProvider>
-          <AuthProvider>
-            <ToastProvider>{children}</ToastProvider>
-          </AuthProvider>
+          <ToastProvider>{children}</ToastProvider>
         </ThemeProvider>
       </body>
     </html>

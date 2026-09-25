@@ -4,7 +4,7 @@ import { LegalPage } from "@/components/marketing/legal-page";
 import { site } from "@/lib/config";
 
 const summary =
-  "The rules for using Nexus AI: your account, acceptable use, your content, third-party models and our responsibilities.";
+  "The rules for using the Nexus AI trial: trial limits, acceptable use, your content, third-party models and our responsibilities.";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
@@ -24,25 +24,34 @@ export default function TermsPage() {
           title: "Agreement",
           body: (
             <p>
-              By creating an account or using {site.name}, you agree to these terms and our{" "}
+              By using the {site.name} trial, you agree to these terms, the{" "}
+              <Link href="/disclaimer">Disclaimer</Link> and our{" "}
               <Link href="/privacy">Privacy Policy</Link>. If you don&apos;t agree, please
               don&apos;t use the service.
             </p>
           ),
         },
         {
-          id: "accounts",
-          title: "Your Account",
+          id: "trial",
+          title: "Trial Access and Limits",
           body: (
             <ul>
               <li>
-                You must be at least 13 years old, and old enough to agree to these terms where you
-                live.
+                Nexus is a free trial. No account is needed, and you must be at least 13 years old
+                to use it.
               </li>
               <li>
-                Keep your password safe. You&apos;re responsible for activity on your account.
+                Usage is limited per IP address each day and per chat. Limits reset at midnight UTC
+                and may change at any time.
               </li>
-              <li>Tell us promptly if you believe your account has been compromised.</li>
+              <li>
+                Don&apos;t try to get around the limits, for example by rotating IP addresses or
+                automating requests.
+              </li>
+              <li>
+                Your chats are tied to your browser. If you clear its data, you may lose access to
+                them, so export anything you want to keep.
+              </li>
             </ul>
           ),
         },
@@ -89,17 +98,6 @@ export default function TermsPage() {
           ),
         },
         {
-          id: "free-service",
-          title: "Free Models and Limits",
-          body: (
-            <p>
-              Free models are offered as available and may change, be rate-limited or be withdrawn
-              by the provider without notice. We may set fair-use limits to keep the service
-              available for everyone.
-            </p>
-          ),
-        },
-        {
           id: "availability",
           title: "Availability and Changes",
           body: (
@@ -115,8 +113,9 @@ export default function TermsPage() {
           title: "Ending Your Use",
           body: (
             <p>
-              You can delete your account at any time from Settings. We may suspend or close
-              accounts that break these terms or put the service or other users at risk.
+              You can delete all of your trial data at any time from Settings. We may block IP
+              addresses or trial IDs that break these terms or put the service or other users at
+              risk, and we may end the trial at any time.
             </p>
           ),
         },

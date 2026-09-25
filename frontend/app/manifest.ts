@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: site.name,
     short_name: site.shortName,
     description: site.description,
-    start_url: "/chat",
+    start_url: "/",
     display: "standalone",
     background_color: "#000000",
     theme_color: "#0f766e",

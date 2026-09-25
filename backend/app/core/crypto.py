@@ -10,7 +10,7 @@ from app.core.errors import AppError
 
 @lru_cache
 def _fernet() -> Fernet:
-    secret = settings.encryption_key or settings.jwt_secret
+    secret = settings.encryption_key
     try:
         return Fernet(secret.encode())
     except ValueError:

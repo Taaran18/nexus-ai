@@ -10,13 +10,13 @@ export default function Error({
   reset: () => void;
 }) {
   return (
-    <main id="main" className="bg-bg grid min-h-dvh place-items-center px-4 text-center">
+    <main id="main" className="grid min-h-dvh place-items-center bg-bg px-4 text-center">
       <div className="max-w-md">
-        <span className="bg-danger-soft text-danger mx-auto grid size-16 place-items-center rounded-2xl">
+        <span className="mx-auto grid size-16 place-items-center rounded-2xl bg-danger-soft text-danger">
           <TriangleAlert className="size-8" aria-hidden />
         </span>
-        <h1 className="text-fg mt-6 text-4xl font-extrabold">Something Went Wrong</h1>
-        <p className="text-fg-2 mt-4 text-lg">
+        <h1 className="mt-6 text-4xl font-extrabold text-fg">Something Went Wrong</h1>
+        <p className="mt-4 text-lg text-fg-2">
           This page hit an unexpected error. Your chats are safe. Try again, and if it keeps
           happening, reload the page.
         </p>
@@ -26,7 +26,7 @@ export default function Error({
             Try Again
           </Button>
           <LinkButton href="/" size="lg" variant="outline">
-            Go to Home
+            Back to Chat
           </LinkButton>
         </div>
       </div>

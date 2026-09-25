@@ -133,18 +133,18 @@ export function KnowledgeView() {
                   : "border-border hover:border-brand/60 hover:bg-bg-subtle",
               )}
             >
-              <span className="bg-brand-soft text-brand grid size-14 place-items-center rounded-2xl">
+              <span className="grid size-14 place-items-center rounded-2xl bg-brand-soft text-brand">
                 {busy ? (
                   <Loader2 className="size-7 animate-spin" />
                 ) : (
                   <UploadCloud className="size-7" />
                 )}
               </span>
-              <span className="text-fg mt-4 text-base font-bold">
+              <span className="mt-4 text-base font-bold text-fg">
                 {dragging ? "Drop to Upload" : "Drag Files Here"}
               </span>
-              <span className="text-fg-2 mt-1 text-sm">
-                or <span className="text-brand font-bold">browse your computer</span>
+              <span className="mt-1 text-sm text-fg-2">
+                or <span className="font-bold text-brand">browse your computer</span>
               </span>
             </button>
             <input
@@ -164,20 +164,20 @@ export function KnowledgeView() {
                 {uploads.slice(0, 5).map((u) => (
                   <li
                     key={u.name}
-                    className="bg-bg-subtle flex items-start gap-3 rounded-2xl px-4 py-3"
+                    className="flex items-start gap-3 rounded-2xl bg-bg-subtle px-4 py-3"
                   >
                     {u.status === "uploading" ? (
                       <Loader2
-                        className="text-brand mt-0.5 size-4 shrink-0 animate-spin"
+                        className="mt-0.5 size-4 shrink-0 animate-spin text-brand"
                         aria-hidden
                       />
                     ) : u.status === "done" ? (
-                      <CheckCircle2 className="text-success mt-0.5 size-4 shrink-0" aria-hidden />
+                      <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
                     ) : (
-                      <XCircle className="text-danger mt-0.5 size-4 shrink-0" aria-hidden />
+                      <XCircle className="mt-0.5 size-4 shrink-0 text-danger" aria-hidden />
                     )}
                     <span className="min-w-0 flex-1">
-                      <span className="text-fg block truncate text-sm font-semibold">{u.name}</span>
+                      <span className="block truncate text-sm font-semibold text-fg">{u.name}</span>
                       <span
                         className={cn(
                           "text-xs",
@@ -193,7 +193,7 @@ export function KnowledgeView() {
                 ))}
               </ul>
             )}
-            <p className="text-muted mt-5 text-[13px] leading-relaxed">
+            <p className="mt-5 text-[13px] leading-relaxed text-muted">
               Tip: ask &ldquo;What does my contract say about notice periods?&rdquo; and Nexus will
               search your files automatically.
             </p>
@@ -223,14 +223,14 @@ export function KnowledgeView() {
               <label className="relative flex-1">
                 <span className="sr-only">Search files</span>
                 <Search
-                  className="text-muted pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2"
+                  className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted"
                   aria-hidden
                 />
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search Files"
-                  className="border-border bg-surface text-fg placeholder:text-muted focus:border-brand h-11 w-full rounded-xl border pr-3 pl-10 text-sm outline-none"
+                  className="h-11 w-full rounded-xl border border-border bg-surface pr-3 pl-10 text-sm text-fg outline-none placeholder:text-muted focus:border-brand"
                 />
               </label>
               <Select
@@ -268,7 +268,7 @@ export function KnowledgeView() {
               action={<Button onClick={() => inputRef.current?.click()}>Upload a File</Button>}
             />
           ) : visible.length === 0 ? (
-            <p className="text-fg-2 px-6 pb-8 text-center text-sm">
+            <p className="px-6 pb-8 text-center text-sm text-fg-2">
               No files match &ldquo;{query}&rdquo;.
             </p>
           ) : (
@@ -290,19 +290,19 @@ export function KnowledgeView() {
                     <Tr key={doc.id}>
                       <Td className="max-w-[420px]">
                         <div className="flex items-start gap-3">
-                          <FileText className="text-brand mt-0.5 size-5 shrink-0" aria-hidden />
+                          <FileText className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden />
                           <div className="min-w-0">
-                            <p className="text-fg truncate font-semibold">{doc.source}</p>
-                            <p className="text-muted line-clamp-1 text-xs">{doc.preview}</p>
+                            <p className="truncate font-semibold text-fg">{doc.source}</p>
+                            <p className="line-clamp-1 text-xs text-muted">{doc.preview}</p>
                           </div>
                         </div>
                       </Td>
-                      <Td className="text-fg-2 text-right whitespace-nowrap tabular-nums">
+                      <Td className="text-right whitespace-nowrap text-fg-2 tabular-nums">
                         {formatBytes(doc.size_bytes)}
                       </Td>
-                      <Td className="text-fg-2 text-right tabular-nums">{doc.chunks}</Td>
+                      <Td className="text-right text-fg-2 tabular-nums">{doc.chunks}</Td>
                       <Td
-                        className="text-fg-2 whitespace-nowrap"
+                        className="whitespace-nowrap text-fg-2"
                         title={formatDate(doc.created_at)}
                       >
                         {relativeTime(doc.created_at)}
@@ -312,7 +312,7 @@ export function KnowledgeView() {
                           onClick={() => setPendingDelete(doc)}
                           aria-label={`Delete ${doc.source}`}
                           title="Delete File"
-                          className="text-muted hover:bg-danger-soft hover:text-danger grid size-9 place-items-center rounded-xl"
+                          className="grid size-9 place-items-center rounded-xl text-muted hover:bg-danger-soft hover:text-danger"
                         >
                           <Trash2 className="size-4" />
                         </button>
@@ -321,13 +321,13 @@ export function KnowledgeView() {
                   ))}
                 </tbody>
               </Table>
-              <ul className="divide-border border-border divide-y border-t md:hidden">
+              <ul className="divide-y divide-border border-t border-border md:hidden">
                 {visible.map((doc) => (
                   <li key={doc.id} className="flex items-center gap-3 px-5 py-4">
-                    <FileText className="text-brand size-5 shrink-0" aria-hidden />
+                    <FileText className="size-5 shrink-0 text-brand" aria-hidden />
                     <div className="min-w-0 flex-1">
-                      <p className="text-fg truncate font-semibold">{doc.source}</p>
-                      <p className="text-muted text-xs">
+                      <p className="truncate font-semibold text-fg">{doc.source}</p>
+                      <p className="text-xs text-muted">
                         {formatBytes(doc.size_bytes)} · {doc.chunks} passages ·{" "}
                         {relativeTime(doc.created_at)}
                       </p>
@@ -335,7 +335,7 @@ export function KnowledgeView() {
                     <button
                       onClick={() => setPendingDelete(doc)}
                       aria-label={`Delete ${doc.source}`}
-                      className="text-muted hover:bg-danger-soft hover:text-danger grid size-10 place-items-center rounded-xl"
+                      className="grid size-10 place-items-center rounded-xl text-muted hover:bg-danger-soft hover:text-danger"
                     >
                       <Trash2 className="size-4" />
                     </button>

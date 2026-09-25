@@ -19,8 +19,8 @@ export function PreferencesSection() {
           icon={<SlidersHorizontal className="size-5" />}
         />
         <CardBody>
-          <div className="border-border bg-bg-subtle flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-fg-2 text-sm">Current model</p>
+          <div className="flex flex-col gap-3 rounded-2xl border border-border bg-bg-subtle p-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-fg-2">Current model</p>
             <ModelPicker />
           </div>
         </CardBody>
@@ -31,7 +31,7 @@ export function PreferencesSection() {
           description="Fine-tune how Nexus responds."
           icon={<Lightbulb className="size-5" />}
         />
-        <CardBody className="divide-border divide-y">
+        <CardBody className="divide-y divide-border">
           <Switch
             label="Think Mode"
             description={`Weigh options before answering, using ${catalog?.think.engine ?? "a reasoning model"}. Slower, but better for decisions.`}

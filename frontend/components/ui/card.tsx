@@ -4,7 +4,7 @@ export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElemen
   return (
     <div
       className={cn(
-        "border-border bg-surface shadow-card rounded-3xl border transition-colors",
+        "rounded-3xl border border-border bg-surface shadow-card transition-colors",
         className,
       )}
       {...props}
@@ -34,13 +34,13 @@ export function CardHeader({
     >
       <div className="flex min-w-0 items-start gap-3.5">
         {icon && (
-          <span className="bg-brand-soft text-brand grid size-10 shrink-0 place-items-center rounded-2xl">
+          <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-brand-soft text-brand">
             {icon}
           </span>
         )}
         <div className="min-w-0">
-          <h2 className="text-fg text-lg font-bold">{title}</h2>
-          {description && <p className="text-fg-2 mt-1 text-sm leading-relaxed">{description}</p>}
+          <h2 className="text-lg font-bold text-fg">{title}</h2>
+          {description && <p className="mt-1 text-sm leading-relaxed text-fg-2">{description}</p>}
         </div>
       </div>
       {action && <div className="flex shrink-0 flex-wrap gap-2">{action}</div>}

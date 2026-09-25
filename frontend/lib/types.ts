@@ -1,10 +1,18 @@
-export interface User {
+export interface Me {
   id: string;
-  email: string;
-  name: string;
   created_at: string;
-  password_changed_at?: string | null;
   preferences: Preferences;
+}
+
+export interface Usage {
+  messages_limit: number;
+  messages_used: number;
+  messages_left: number;
+  uploads_limit: number;
+  uploads_used: number;
+  uploads_left: number;
+  max_turns_per_chat: number;
+  resets_at: string;
 }
 
 export interface Preferences {
@@ -14,13 +22,6 @@ export interface Preferences {
   use_memory?: boolean;
   enter_to_send?: boolean;
   show_stats?: boolean;
-}
-
-export interface AuthResponse {
-  user: User;
-  access_token: string;
-  refresh_token: string;
-  expires_in: number;
 }
 
 export interface Source {
@@ -141,16 +142,6 @@ export interface ProviderModel {
   recommended: boolean;
 }
 
-export interface AuthSession {
-  id: string;
-  created_at: string;
-  last_used_at: string;
-  expires_at: string;
-  user_agent: string;
-  ip: string;
-  current: boolean;
-}
-
 export interface Overview {
   stats: {
     chats: number;
@@ -161,7 +152,7 @@ export interface Overview {
     memories: number;
     providers: number;
   };
-  recent_chats: Array<ChatSummary & { folder?: Folder | null }>;
+  usage: Usage;
   recent_documents: DocumentFile[];
 }
 

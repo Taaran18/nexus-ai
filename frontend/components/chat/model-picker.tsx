@@ -106,11 +106,11 @@ export function ModelPicker({ compact }: { compact?: boolean }) {
       renderTrigger={(selected, open) => (
         <span
           className={cn(
-            "text-fg-2 hover:bg-surface-2 hover:text-fg inline-flex h-9 max-w-[220px] items-center gap-1.5 rounded-xl px-3 text-sm font-semibold transition-colors",
+            "inline-flex h-9 max-w-[220px] items-center gap-1.5 rounded-xl px-3 text-sm font-semibold text-fg-2 transition-colors hover:bg-surface-2 hover:text-fg",
             open && "bg-surface-2 text-fg",
           )}
         >
-          <Sparkles className="text-brand size-4 shrink-0" aria-hidden />
+          <Sparkles className="size-4 shrink-0 text-brand" aria-hidden />
           <span className={cn("truncate", compact && "max-sm:sr-only")}>
             {selected?.label ?? choice.label}
           </span>
@@ -122,7 +122,7 @@ export function ModelPicker({ compact }: { compact?: boolean }) {
       )}
       footer={
         <div className="flex items-center justify-between gap-3 px-4 py-3">
-          <span className="text-muted flex items-center gap-2 text-xs">
+          <span className="flex items-center gap-2 text-xs text-muted">
             {loading ? (
               <>
                 <Loader2 className="size-3.5 animate-spin" aria-hidden /> Loading your
@@ -136,7 +136,7 @@ export function ModelPicker({ compact }: { compact?: boolean }) {
           </span>
           <Link
             href="/settings?tab=models"
-            className="text-brand hover:text-brand-hover inline-flex items-center gap-1.5 text-xs font-bold"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-brand hover:text-brand-hover"
           >
             <KeyRound className="size-3.5" aria-hidden />
             Add API Keys

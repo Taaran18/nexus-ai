@@ -1,64 +1,28 @@
 import { api, download, streamEvents } from "@/lib/api/client";
 import type {
-  AuthResponse,
-  AuthSession,
   Catalog,
   ChatDetail,
   ChatSummary,
   DocumentFile,
   Folder,
+  Me,
   MemoryItem,
   Overview,
   Preferences,
   ProviderInfo,
   ProviderModel,
-  User,
+  Usage,
 } from "@/lib/types";
 
-export const authApi = {
-  signup: (name: string, email: string, password: string) =>
-    api<AuthResponse>("/auth/signup", {
-      method: "POST",
-      body: { name, email, password },
-      auth: false,
-    }),
-  login: (email: string, password: string) =>
-    api<AuthResponse>("/auth/login", { method: "POST", body: { email, password }, auth: false }),
-  logout: () => api<void>("/auth/logout", { method: "POST" }),
-  forgot: (email: string) =>
-    api<{ status: string; email_delivery: boolean }>("/auth/forgot-password", {
-      method: "POST",
-      body: { email },
-      auth: false,
-    }),
-  reset: (token: string, password: string) =>
-    api<{ status: string }>("/auth/reset-password", {
-      method: "POST",
-      body: { token, password },
-      auth: false,
-    }),
-};
-
-export const accountApi = {
-  get: () => api<User>("/account"),
-  update: (changes: { name?: string; preferences?: Preferences }) =>
-    api<User>("/account", { method: "PATCH", body: changes }),
-  changePassword: (current_password: string, new_password: string, sign_out_others: boolean) =>
-    api<{ signed_out_sessions: number }>("/account/password", {
-      method: "POST",
-      body: { current_password, new_password, sign_out_others },
-    }),
-  changeEmail: (email: string, password: string) =>
-    api<User>("/account/email", { method: "POST", body: { email, password } }),
-  sessions: () => api<AuthSession[]>("/account/sessions"),
-  revokeSession: (id: string) => api<void>(`/account/sessions/${id}`, { method: "DELETE" }),
-  revokeOthers: () =>
-    api<{ revoked: number }>("/account/sessions/revoke-others", { method: "POST" }),
-  overview: () => api<Overview>("/account/overview"),
-  exportData: () => download("/account/export"),
-  clearHistory: () => api<{ deleted: number }>("/account/history", { method: "DELETE" }),
-  deleteAccount: (password: string) =>
-    api<void>("/account/delete", { method: "POST", body: { password } }),
+export const meApi = {
+  get: () => api<Me>("/me"),
+  updatePreferences: (preferences: Preferences) =>
+    api<Me>("/me", { method: "PATCH", body: { preferences } }),
+  usage: () => api<Usage>("/me/usage"),
+  overview: () => api<Overview>("/me/overview"),
+  exportData: () => download("/me/export"),
+  clearHistory: () => api<{ deleted: number }>("/me/history", { method: "DELETE" }),
+  deleteEverything: () => api<void>("/me", { method: "DELETE" }),
 };
 
 export const chatApi = {
@@ -123,7 +87,7 @@ export const memoryApi = {
 };
 
 export const modelApi = {
-  catalog: () => api<Catalog>("/models", { auth: false }),
+  catalog: () => api<Catalog>("/models"),
   providers: () => api<ProviderInfo[]>("/providers"),
   saveKey: (provider: string, apiKey: string) =>
     api<{ key_hint: string; models: ProviderModel[] }>(`/providers/${provider}/key`, {

@@ -2,17 +2,14 @@
 
 import { AlertTriangle, Database, Download, FileX2, MessageSquareX } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useWorkspace } from "@/components/app/workspace-provider";
-import { useAuth } from "@/components/providers/auth-provider";
 import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
-import { ConfirmDialog, Dialog } from "@/components/ui/dialog";
-import { Field, Input, PasswordInput } from "@/components/ui/input";
-import { ApiError, clearSession } from "@/lib/api/client";
-import { accountApi, documentApi } from "@/lib/api/endpoints";
+import { ConfirmDialog } from "@/components/ui/dialog";
+import { ApiError, resetVisitor } from "@/lib/api/client";
+import { documentApi, meApi } from "@/lib/api/endpoints";
 
 export function DataSection() {
   const toast = useToast();
@@ -34,7 +31,7 @@ export function DataSection() {
           onClick={async () => {
             setExporting(true);
             try {
-              await accountApi.exportData();
+              await meApi.exportData();
               toast.success("Export Ready", "Your data is downloading.");
             } catch (error) {
               toast.error(
@@ -80,7 +77,7 @@ export function DataSection() {
           description={
             <>
               You&apos;re in control of what Nexus keeps. Read how we handle data in the{" "}
-              <Link href="/privacy" className="text-brand hover:text-brand-hover font-semibold">
+              <Link href="/privacy" className="font-semibold text-brand hover:text-brand-hover">
                 Privacy Policy
               </Link>
               .
@@ -94,28 +91,28 @@ export function DataSection() {
               key={row.title}
               className={
                 index % 2 === 0
-                  ? "bg-bg-subtle flex flex-col gap-4 rounded-2xl p-5 sm:flex-row sm:items-center"
-                  : "border-border flex flex-col gap-4 rounded-2xl border p-5 sm:flex-row sm:items-center"
+                  ? "flex flex-col gap-4 rounded-2xl bg-bg-subtle p-5 sm:flex-row sm:items-center"
+                  : "flex flex-col gap-4 rounded-2xl border border-border p-5 sm:flex-row sm:items-center"
               }
             >
-              <row.icon className="text-brand size-6 shrink-0" aria-hidden />
+              <row.icon className="size-6 shrink-0 text-brand" aria-hidden />
               <div className="flex-1">
-                <h3 className="text-fg font-bold">{row.title}</h3>
-                <p className="text-fg-2 mt-0.5 text-sm">{row.text}</p>
+                <h3 className="font-bold text-fg">{row.title}</h3>
+                <p className="mt-0.5 text-sm text-fg-2">{row.text}</p>
               </div>
               {row.action}
             </div>
           ))}
         </CardBody>
       </Card>
-      <section className="border-danger/40 bg-surface shadow-card rounded-3xl border">
+      <section className="rounded-3xl border border-danger/40 bg-surface shadow-card">
         <CardHeader
-          title="Delete Account"
-          description="Permanently delete your account and everything in it: chats, documents, memories, API keys and sessions."
-          icon={<AlertTriangle className="text-danger size-5" />}
+          title="Delete All My Data"
+          description="Permanently delete everything in this trial workspace: chats, folders, documents, memories, API keys and preferences."
+          icon={<AlertTriangle className="size-5 text-danger" />}
           action={
             <Button variant="danger" onClick={() => setDeleting(true)}>
-              Delete Account
+              Delete All Data
             </Button>
           }
         />
@@ -129,7 +126,7 @@ export function DataSection() {
         confirmText="DELETE"
         onConfirm={async () => {
           try {
-            const result = await accountApi.clearHistory();
+            const result = await meApi.clearHistory();
             await Promise.all([workspace.refreshChats(), workspace.refreshMemory()]);
             toast.success("Chat History Cleared", `${result.deleted} chats deleted.`);
           } catch (error) {
@@ -161,92 +158,31 @@ export function DataSection() {
           }
         }}
       />
-      {deleting && <DeleteAccountDialog onClose={() => setDeleting(false)} />}
+      <ConfirmDialog
+        open={deleting}
+        onClose={() => setDeleting(false)}
+        title="Delete All Your Data?"
+        description="This permanently deletes every chat, folder, document, memory, API key and preference in this trial workspace, and gives this browser a fresh start. It can't be undone."
+        confirmLabel="Delete Everything"
+        confirmText="DELETE"
+        onConfirm={async () => {
+          try {
+            await meApi.deleteEverything();
+            resetVisitor();
+            try {
+              window.localStorage.removeItem("nexus.model");
+              window.localStorage.removeItem("nexus.think");
+            } catch {}
+            window.location.replace(`${window.location.origin}/`);
+          } catch (error) {
+            toast.error(
+              "Couldn't Delete Your Data",
+              error instanceof ApiError ? error.message : undefined,
+            );
+            throw error;
+          }
+        }}
+      />
     </>
-  );
-}
-
-function DeleteAccountDialog({ onClose }: { onClose: () => void }) {
-  const { user } = useAuth();
-  const router = useRouter();
-  const toast = useToast();
-  const [password, setPassword] = useState("");
-  const [typed, setTyped] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const ready = password.length > 0 && typed.trim().toLowerCase() === user?.email;
-
-  const submit = async () => {
-    if (!ready) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await accountApi.deleteAccount(password);
-      clearSession();
-      toast.success("Account Deleted", "Your account and data have been permanently removed.");
-      router.replace("/");
-    } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "We couldn't delete your account. Try again.",
-      );
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Dialog
-      open
-      onClose={onClose}
-      dismissible={!busy}
-      title="Delete Your Account?"
-      icon={
-        <span className="bg-danger-soft text-danger grid size-11 shrink-0 place-items-center rounded-2xl">
-          <AlertTriangle className="size-5" aria-hidden />
-        </span>
-      }
-      description="This permanently deletes your profile, chats, documents, memories, API keys and sessions. There's no way to recover them."
-      footer={
-        <>
-          <Button variant="outline" onClick={onClose} disabled={busy}>
-            Keep My Account
-          </Button>
-          <Button variant="danger" onClick={submit} loading={busy} disabled={!ready}>
-            Delete Account Forever
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-4">
-        {error && (
-          <p
-            role="alert"
-            className="bg-danger-soft text-danger rounded-2xl px-4 py-3 text-sm font-medium"
-          >
-            {error}
-          </p>
-        )}
-        <Field label={`Type your email (${user?.email}) to confirm`}>
-          {(props) => (
-            <Input
-              {...props}
-              data-autofocus
-              autoComplete="off"
-              value={typed}
-              onChange={(e) => setTyped(e.target.value)}
-            />
-          )}
-        </Field>
-        <Field label="Password">
-          {(props) => (
-            <PasswordInput
-              {...props}
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          )}
-        </Field>
-      </div>
-    </Dialog>
   );
 }

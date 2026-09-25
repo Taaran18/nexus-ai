@@ -27,11 +27,11 @@ export function CopyButton({
       aria-label={copied ? "Copied" : label}
       title={copied ? "Copied" : label}
       className={cn(
-        "text-muted hover:bg-surface-2 hover:text-fg inline-flex items-center gap-1.5 rounded-lg p-1.5 transition-colors",
+        "inline-flex items-center gap-1.5 rounded-lg p-1.5 text-muted transition-colors hover:bg-surface-2 hover:text-fg",
         className,
       )}
     >
-      {copied ? <Check className="text-success size-4" /> : <Copy className="size-4" />}
+      {copied ? <Check className="size-4 text-success" /> : <Copy className="size-4" />}
     </button>
   );
 }

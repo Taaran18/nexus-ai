@@ -22,7 +22,7 @@ class RateLimiter:
         hits.append(now)
 
 
-chat_limiter = RateLimiter(30, 60, "message")
+chat_limiter = RateLimiter(8, 60, "per-minute message")
 upload_limiter = RateLimiter(20, 3600, "upload")
 key_limiter = RateLimiter(10, 60, "API key check")
 memory_limiter = RateLimiter(10, 60, "memory")

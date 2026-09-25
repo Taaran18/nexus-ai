@@ -33,11 +33,12 @@ export const Composer = forwardRef<
     onSend: (text: string) => void;
     onStop: () => void;
     streaming: boolean;
+    disabled?: boolean;
     placeholder?: string;
     autoFocus?: boolean;
   }
 >(function Composer(
-  { onSend, onStop, streaming, placeholder = "Ask Nexus anything", autoFocus },
+  { onSend, onStop, streaming, disabled, placeholder = "Ask Nexus anything", autoFocus },
   ref,
 ) {
   const { think, setThink, catalog, preferences } = useWorkspace();
@@ -78,7 +79,7 @@ export const Composer = forwardRef<
 
   const submit = () => {
     const text = value.trim();
-    if (!text || streaming) return;
+    if (!text || streaming || disabled) return;
     onSend(text);
     setValue("");
   };
@@ -152,12 +153,12 @@ export const Composer = forwardRef<
     }
   };
 
-  const canSend = value.trim().length > 0 && !streaming;
+  const canSend = value.trim().length > 0 && !streaming && !disabled;
 
   return (
     <div
       className={cn(
-        "bg-surface shadow-pop rounded-[28px] border transition-colors",
+        "rounded-[28px] border bg-surface shadow-pop transition-colors",
         think ? "border-think/50" : "border-border focus-within:border-border-strong",
       )}
     >
@@ -180,10 +181,17 @@ export const Composer = forwardRef<
             submit();
           }
         }}
+        disabled={disabled}
         placeholder={
-          listening ? "Listening…" : think ? "Describe the decision or problem" : placeholder
+          disabled
+            ? "Trial limit reached"
+            : listening
+              ? "Listening…"
+              : think
+                ? "Describe the decision or problem"
+                : placeholder
         }
-        className="text-fg placeholder:text-muted block max-h-60 min-h-[56px] w-full resize-none scrollbar-thin bg-transparent px-5 pt-4 pb-2 text-base leading-relaxed outline-none"
+        className="block max-h-60 min-h-[56px] w-full resize-none scrollbar-thin bg-transparent px-5 pt-4 pb-2 text-base leading-relaxed text-fg outline-none placeholder:text-muted disabled:cursor-not-allowed"
       />
       <div className="flex items-center justify-between gap-2 px-2.5 pb-2.5">
         <div className="flex min-w-0 items-center gap-1">
@@ -204,7 +212,7 @@ export const Composer = forwardRef<
             disabled={Boolean(uploading)}
             aria-label={uploading ? `Uploading ${uploading}` : "Add a file to your knowledge base"}
             title="Add a File to Your Knowledge Base"
-            className="text-fg-2 hover:bg-surface-2 hover:text-fg grid size-9 shrink-0 place-items-center rounded-xl transition-colors disabled:opacity-60"
+            className="grid size-9 shrink-0 place-items-center rounded-xl text-fg-2 transition-colors hover:bg-surface-2 hover:text-fg disabled:opacity-60"
           >
             {uploading ? (
               <Loader2 className="size-[18px] animate-spin" />
@@ -237,7 +245,7 @@ export const Composer = forwardRef<
             className={cn(
               "grid size-9 place-items-center rounded-xl transition-colors",
               listening
-                ? "bg-danger-soft text-danger animate-pulse"
+                ? "animate-pulse bg-danger-soft text-danger"
                 : "text-fg-2 hover:bg-surface-2 hover:text-fg",
             )}
           >
@@ -249,7 +257,7 @@ export const Composer = forwardRef<
               onClick={onStop}
               aria-label="Stop generating"
               title="Stop Generating"
-              className="bg-fg text-bg grid size-10 place-items-center rounded-full transition-transform active:scale-95"
+              className="grid size-10 place-items-center rounded-full bg-fg text-bg transition-transform active:scale-95"
             >
               <Square className="size-3.5 fill-current" />
             </button>
@@ -260,7 +268,7 @@ export const Composer = forwardRef<
               disabled={!canSend}
               aria-label="Send message"
               title={enterToSend ? "Send (Enter)" : "Send (Ctrl + Enter)"}
-              className="bg-brand-solid text-on-brand hover:bg-brand-hover disabled:bg-surface-3 disabled:text-muted grid size-10 place-items-center rounded-full transition-[transform,opacity,background-color] active:scale-95"
+              className="grid size-10 place-items-center rounded-full bg-brand-solid text-on-brand transition-[transform,opacity,background-color] hover:bg-brand-hover active:scale-95 disabled:bg-surface-3 disabled:text-muted"
             >
               <ArrowUp className="size-5" />
             </button>
@@ -268,7 +276,7 @@ export const Composer = forwardRef<
         </div>
       </div>
       {think && (
-        <div className="border-think/20 text-think flex items-center gap-2 border-t px-5 py-2 text-xs font-semibold">
+        <div className="flex items-center gap-2 border-t border-think/20 px-5 py-2 text-xs font-semibold text-think">
           <Lightbulb className="size-3.5" aria-hidden />
           <span className="truncate">Think mode · {thinkEngine} weighs your options first</span>
         </div>

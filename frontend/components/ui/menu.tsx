@@ -118,15 +118,15 @@ export function Menu({ items, trigger, floating, onOpenChange, ariaLabel }: Menu
                 setOpen(false);
               }
             }}
-            className="animate-pop-in border-border bg-surface shadow-pop z-[80] scrollbar-thin overflow-y-auto rounded-2xl border p-1.5 outline-none"
+            className="z-[80] animate-pop-in scrollbar-thin overflow-y-auto rounded-2xl border border-border bg-surface p-1.5 shadow-pop outline-none"
           >
             {items.map((item, index) => {
-              if ("separator" in item) return <div key={index} className="bg-border my-1.5 h-px" />;
+              if ("separator" in item) return <div key={index} className="my-1.5 h-px bg-border" />;
               if ("heading" in item)
                 return (
                   <div
                     key={index}
-                    className="text-muted px-3 pt-2 pb-1 text-[11px] font-bold tracking-wider uppercase"
+                    className="px-3 pt-2 pb-1 text-[11px] font-bold tracking-wider text-muted uppercase"
                   >
                     {item.heading}
                   </div>
@@ -151,7 +151,7 @@ export function Menu({ items, trigger, floating, onOpenChange, ariaLabel }: Menu
                     </span>
                   )}
                   <span className="flex-1 truncate">{item.label}</span>
-                  {item.hint && <span className="text-muted text-xs">{item.hint}</span>}
+                  {item.hint && <span className="text-xs text-muted">{item.hint}</span>}
                 </div>
               );
             })}

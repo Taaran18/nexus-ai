@@ -61,7 +61,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       <div
         aria-live="polite"
         aria-relevant="additions"
-        className="pointer-events-none fixed inset-x-0 top-3 z-[100] flex flex-col items-center gap-2 px-4 sm:inset-x-auto sm:top-5 sm:right-5 sm:items-end"
+        className="pointer-events-none fixed inset-x-0 top-3 z-[100] flex flex-col items-center gap-2 px-4 sm:inset-x-auto sm:top-16 sm:right-5 sm:items-end"
       >
         {toasts.map((t) => {
           const Icon = ICONS[t.tone];
@@ -69,19 +69,19 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             <div
               key={t.id}
               role={t.tone === "error" ? "alert" : "status"}
-              className="animate-pop-in border-border bg-surface shadow-pop pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-2xl border p-4"
+              className="pointer-events-auto flex w-full max-w-sm animate-pop-in items-start gap-3 rounded-2xl border border-border bg-surface p-4 shadow-pop"
             >
               <Icon className={cn("mt-0.5 size-5 shrink-0", TONES[t.tone])} aria-hidden />
               <div className="min-w-0 flex-1">
-                <p className="text-fg text-sm font-semibold">{t.title}</p>
-                {t.description && <p className="text-fg-2 mt-0.5 text-sm">{t.description}</p>}
+                <p className="text-sm font-semibold text-fg">{t.title}</p>
+                {t.description && <p className="mt-0.5 text-sm text-fg-2">{t.description}</p>}
                 {t.action && (
                   <button
                     onClick={() => {
                       t.action?.onClick();
                       dismiss(t.id);
                     }}
-                    className="text-brand hover:text-brand-hover mt-2 text-sm font-semibold"
+                    className="mt-2 text-sm font-semibold text-brand hover:text-brand-hover"
                   >
                     {t.action.label}
                   </button>
@@ -90,7 +90,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               <button
                 onClick={() => dismiss(t.id)}
                 aria-label="Dismiss notification"
-                className="text-muted hover:bg-surface-2 hover:text-fg rounded-lg p-1 transition-colors"
+                className="rounded-lg p-1 text-muted transition-colors hover:bg-surface-2 hover:text-fg"
               >
                 <X className="size-4" />
               </button>

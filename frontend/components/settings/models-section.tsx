@@ -46,12 +46,12 @@ export function ModelsSection() {
       <Card className="overflow-hidden">
         <CardHeader
           title="Free Models on Groq"
-          description="Included with your account. Pick by what matters more to you: speed or care."
+          description="Included free in the trial. Pick by what matters more to you: speed or care."
           icon={<Sparkles className="size-5" />}
         />
         {catalogError ? (
           <CardBody>
-            <p className="text-danger text-sm">{catalogError}</p>
+            <p className="text-sm text-danger">{catalogError}</p>
           </CardBody>
         ) : !catalog ? (
           <CardBody className="space-y-3">
@@ -62,11 +62,11 @@ export function ModelsSection() {
           <>
             <div className="grid gap-3 px-5 pb-5 sm:grid-cols-3 sm:px-6">
               {catalog.groups.map((group) => (
-                <div key={group.id} className="bg-bg-subtle rounded-2xl p-4">
+                <div key={group.id} className="rounded-2xl bg-bg-subtle p-4">
                   <Badge tone={GROUP_TONE[group.id as keyof typeof GROUP_TONE] ?? "neutral"}>
                     {group.name}
                   </Badge>
-                  <p className="text-fg-2 mt-2 text-sm">{group.description}</p>
+                  <p className="mt-2 text-sm text-fg-2">{group.description}</p>
                 </div>
               ))}
             </div>
@@ -90,8 +90,8 @@ export function ModelsSection() {
                   return (
                     <Tr key={model.id}>
                       <Td className="min-w-[180px]">
-                        <p className="text-fg font-bold">{model.name}</p>
-                        <p className="text-muted text-xs">
+                        <p className="font-bold text-fg">{model.name}</p>
+                        <p className="text-xs text-muted">
                           {model.developer} · {model.speed}
                         </p>
                       </Td>
@@ -100,10 +100,10 @@ export function ModelsSection() {
                       </Td>
                       <Td className="min-w-[260px]">
                         <p className="text-fg">{model.best_for}</p>
-                        <p className="text-muted mt-1 text-xs">{model.why}</p>
+                        <p className="mt-1 text-xs text-muted">{model.why}</p>
                       </Td>
                       <Td
-                        className="text-fg-2 hidden text-right whitespace-nowrap 2xl:table-cell"
+                        className="hidden text-right whitespace-nowrap text-fg-2 2xl:table-cell"
                         title="How much text the model can consider at once"
                       >
                         {formatContext(model.context)} tokens
@@ -138,8 +138,8 @@ export function ModelsSection() {
                 })}
               </tbody>
             </Table>
-            <div className="border-border bg-bg-subtle text-fg-2 flex items-start gap-3 border-t px-6 py-4 text-sm">
-              <Lightbulb className="text-think mt-0.5 size-4 shrink-0" aria-hidden />
+            <div className="flex items-start gap-3 border-t border-border bg-bg-subtle px-6 py-4 text-sm text-fg-2">
+              <Lightbulb className="mt-0.5 size-4 shrink-0 text-think" aria-hidden />
               <p>
                 Think mode currently uses{" "}
                 <strong className="text-fg">{catalog.think.engine}</strong> to weigh options before
@@ -168,19 +168,19 @@ export function ModelsSection() {
               {providers.map((provider) => (
                 <li
                   key={provider.id}
-                  className="border-border bg-bg-subtle flex flex-col rounded-3xl border p-5"
+                  className="flex flex-col rounded-3xl border border-border bg-bg-subtle p-5"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <h3 className="text-fg text-base font-bold">{provider.name}</h3>
+                    <h3 className="text-base font-bold text-fg">{provider.name}</h3>
                     {provider.connected ? (
                       <Badge tone="success">Connected</Badge>
                     ) : (
                       <Badge>Not Connected</Badge>
                     )}
                   </div>
-                  <p className="text-fg-2 mt-1.5 flex-1 text-sm">{provider.tagline}</p>
+                  <p className="mt-1.5 flex-1 text-sm text-fg-2">{provider.tagline}</p>
                   {provider.connected && (
-                    <p className="text-muted mt-3 text-xs">
+                    <p className="mt-3 text-xs text-muted">
                       Key ending <span className="font-mono">{provider.key_hint}</span>
                       {provider.updated_at && ` · added ${relativeTime(provider.updated_at)}`}
                     </p>
@@ -334,7 +334,7 @@ function KeyDialog({
           href={provider.key_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-brand hover:text-brand-hover inline-flex items-center gap-1.5 text-sm font-bold"
+          className="inline-flex items-center gap-1.5 text-sm font-bold text-brand hover:text-brand-hover"
         >
           Get a {provider.name} key
           <ExternalLink className="size-3.5" aria-hidden />
@@ -383,10 +383,10 @@ function ModelsDialog({ provider, onClose }: { provider: ProviderInfo; onClose: 
       }
     >
       {error ? (
-        <p className="bg-danger-soft text-danger rounded-2xl p-4 text-sm font-medium">{error}</p>
+        <p className="rounded-2xl bg-danger-soft p-4 text-sm font-medium text-danger">{error}</p>
       ) : !models ? (
-        <div className="text-fg-2 flex items-center gap-3 py-10 text-sm" role="status">
-          <Loader2 className="text-brand size-5 animate-spin" aria-hidden />
+        <div className="flex items-center gap-3 py-10 text-sm text-fg-2" role="status">
+          <Loader2 className="size-5 animate-spin text-brand" aria-hidden />
           Loading the models your key can use…
         </div>
       ) : (
@@ -395,14 +395,14 @@ function ModelsDialog({ provider, onClose }: { provider: ProviderInfo; onClose: 
             <label className="relative flex-1">
               <span className="sr-only">Search models</span>
               <Search
-                className="text-muted pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2"
+                className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted"
                 aria-hidden
               />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search Models"
-                className="border-border bg-surface text-fg placeholder:text-muted focus:border-brand h-11 w-full rounded-xl border pr-3 pl-10 text-sm outline-none"
+                className="h-11 w-full rounded-xl border border-border bg-surface pr-3 pl-10 text-sm text-fg outline-none placeholder:text-muted focus:border-brand"
               />
             </label>
             <Select
@@ -418,7 +418,7 @@ function ModelsDialog({ provider, onClose }: { provider: ProviderInfo; onClose: 
               ]}
             />
           </div>
-          <div className="border-border overflow-hidden rounded-2xl border">
+          <div className="overflow-hidden rounded-2xl border border-border">
             <Table className="max-h-[50dvh] overflow-y-auto">
               <THead>
                 <tr>
@@ -440,12 +440,12 @@ function ModelsDialog({ provider, onClose }: { provider: ProviderInfo; onClose: 
                   return (
                     <Tr key={model.id}>
                       <Td className="min-w-[260px]">
-                        <p className="text-fg flex flex-wrap items-center gap-2 font-bold">
+                        <p className="flex flex-wrap items-center gap-2 font-bold text-fg">
                           {model.name}
                           {model.recommended && <Badge tone="brand">Recommended</Badge>}
                         </p>
-                        <p className="text-fg-2 mt-0.5 text-xs">{model.best_for}</p>
-                        <p className="text-muted mt-0.5 font-mono text-[11px]">
+                        <p className="mt-0.5 text-xs text-fg-2">{model.best_for}</p>
+                        <p className="mt-0.5 font-mono text-[11px] text-muted">
                           {model.id}
                           {model.context ? ` · ${formatContext(model.context)} context` : ""}
                         </p>
@@ -488,10 +488,10 @@ function ModelsDialog({ provider, onClose }: { provider: ProviderInfo; onClose: 
               </tbody>
             </Table>
             {visible.length === 0 && (
-              <p className="text-fg-2 p-6 text-center text-sm">No models match your filters.</p>
+              <p className="p-6 text-center text-sm text-fg-2">No models match your filters.</p>
             )}
           </div>
-          <p className="text-muted text-xs">
+          <p className="text-xs text-muted">
             {provider.id === "openrouter"
               ? "OpenRouter prices come live from OpenRouter."
               : `Prices for recommended models were checked on ${workspace.catalog?.checked ?? "recently"}. "—" means the price isn't listed, so check ${provider.name}'s pricing page.`}

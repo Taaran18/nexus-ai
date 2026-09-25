@@ -3,7 +3,7 @@ import { LegalPage } from "@/components/marketing/legal-page";
 import { site } from "@/lib/config";
 
 const summary =
-  "What Nexus AI collects, why we need it, who we share it with and how you can see, export or delete it.";
+  "What the Nexus AI trial collects, including your IP address, why we need it, who we share it with and how to delete it.";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -23,10 +23,10 @@ export default function PrivacyPage() {
           title: "Overview",
           body: (
             <p>
-              This policy explains how {site.name} (&ldquo;Nexus&rdquo;, &ldquo;we&rdquo;,
-              &ldquo;us&rdquo;) handles your information when you use our website and AI assistant.
-              We collect only what we need to run the service, and you can export or delete your
-              data at any time from Settings.
+              {site.name} (&ldquo;Nexus&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;) is offered as a
+              free trial with no accounts. This policy explains what we collect when you use it,
+              why, and how you can export or delete your data at any time from Settings, Data &amp;
+              Privacy.
             </p>
           ),
         },
@@ -36,16 +36,23 @@ export default function PrivacyPage() {
           body: (
             <ul>
               <li>
-                <strong>Account details:</strong> your name, email address and a securely hashed
-                password. We never store your password in plain text.
+                <strong>IP address and usage counts:</strong> we record the IP address you connect
+                from, when it was first and last seen, and how many messages and uploads it used
+                each day. We use this to enforce trial limits and prevent abuse.
               </li>
               <li>
-                <strong>Conversations:</strong> the messages you send, the replies you receive, your
-                ratings of replies, chat titles and folders.
+                <strong>Trial ID:</strong> a random identifier created in your browser and stored in
+                its local storage. We combine it with your IP address to create a private workspace,
+                so other people, even on the same network, can&apos;t see your chats. It
+                doesn&apos;t contain your name or email.
               </li>
               <li>
-                <strong>Documents:</strong> files you upload to your Knowledge Base, stored as text
-                passages and numerical search vectors.
+                <strong>Conversations:</strong> the messages you send, the replies you receive,
+                ratings, chat titles and folders.
+              </li>
+              <li>
+                <strong>Documents:</strong> files you upload, stored as text passages and numerical
+                search vectors.
               </li>
               <li>
                 <strong>Memories:</strong> short summaries of up to three chats you choose to save
@@ -54,10 +61,6 @@ export default function PrivacyPage() {
               <li>
                 <strong>API keys:</strong> keys you add for third-party providers, encrypted before
                 storage.
-              </li>
-              <li>
-                <strong>Sign-in sessions:</strong> the browser, device type and IP address for each
-                signed-in session, so you can review and end sessions from Settings.
               </li>
               <li>
                 <strong>Technical logs:</strong> request times, status codes and error types, used
@@ -71,10 +74,9 @@ export default function PrivacyPage() {
           title: "How We Use Information",
           body: (
             <ul>
-              <li>To create and secure your account and keep you signed in.</li>
               <li>To generate replies, search your documents and apply your saved memories.</li>
-              <li>To show your chat history, folders, documents and settings across devices.</li>
-              <li>To send password reset emails you request.</li>
+              <li>To show your chat history, folders, documents and settings in this browser.</li>
+              <li>To apply daily trial limits per IP address and per chat.</li>
               <li>To prevent abuse, enforce rate limits and fix problems.</li>
             </ul>
           ),
@@ -107,8 +109,8 @@ export default function PrivacyPage() {
                   processes your question in Think mode.
                 </li>
                 <li>
-                  <strong>Hosting providers</strong> run our website and servers and store your data
-                  on our behalf.
+                  <strong>Hosting providers</strong> run our website and servers and store data on
+                  our behalf.
                 </li>
               </ul>
               <p>We don&apos;t sell your data, and we don&apos;t use it for advertising.</p>
@@ -120,10 +122,11 @@ export default function PrivacyPage() {
           title: "How Long We Keep Data",
           body: (
             <p>
-              We keep your data for as long as your account is active. Deleting a chat, document,
-              memory or API key removes it immediately. Deleting your account permanently removes
-              your profile, chats, documents, memories, keys and sessions. Backups may keep copies
-              for up to 30 days before they are overwritten.
+              Daily usage counts for an IP address are kept for 14 days. Chats, documents, memories,
+              keys and preferences are kept until you delete them or the trial ends. Deleting an
+              item removes it immediately, and Delete All My Data in Settings removes everything
+              linked to your trial ID. Backups may keep copies for up to 30 days before they are
+              overwritten.
             </p>
           ),
         },
@@ -133,19 +136,16 @@ export default function PrivacyPage() {
           body: (
             <ul>
               <li>
-                <strong>Access and export:</strong> download everything we hold about you from
-                Settings, Data and Privacy.
+                <strong>Access and export:</strong> download your trial data from Settings, Data
+                &amp; Privacy.
               </li>
               <li>
-                <strong>Correction:</strong> update your name and email in Settings.
+                <strong>Deletion:</strong> delete individual items, your chat history or all of your
+                trial data.
               </li>
               <li>
-                <strong>Deletion:</strong> delete individual items, your full history or your
-                account.
-              </li>
-              <li>
-                <strong>Objection:</strong> contact us if you have concerns about how your data is
-                processed.
+                <strong>Objection:</strong> contact us if you have concerns about how your data,
+                including your IP address, is processed.
               </li>
             </ul>
           ),
@@ -155,9 +155,9 @@ export default function PrivacyPage() {
           title: "Security",
           body: (
             <p>
-              Passwords are hashed with scrypt, API keys are encrypted, connections use HTTPS and
-              sessions use short-lived tokens that you can revoke. No system is perfectly secure, so
-              please use a strong, unique password.
+              API keys are encrypted, connections use HTTPS, and your trial ID is a long random
+              value. Anyone with access to your browser can open your trial workspace, so don&apos;t
+              use Nexus on shared devices for anything sensitive.
             </p>
           ),
         },

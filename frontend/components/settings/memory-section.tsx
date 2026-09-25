@@ -26,9 +26,9 @@ export function MemorySection() {
           icon={<Brain className="size-5" />}
         />
         <CardBody>
-          <div className="bg-bg-subtle rounded-2xl p-4">
+          <div className="rounded-2xl bg-bg-subtle p-4">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-fg font-bold">
+              <span className="font-bold text-fg">
                 {used} of {memory.limit} Memory Slots Used
               </span>
               {used >= memory.limit && <Badge tone="warning">Full</Badge>}
@@ -45,7 +45,7 @@ export function MemorySection() {
               ))}
             </div>
           </div>
-          <div className="divide-border mt-2 divide-y">
+          <div className="mt-2 divide-y divide-border">
             <Switch
               label="Use Memory in Replies"
               description="Turn off to pause memory without deleting what's saved."
@@ -61,7 +61,7 @@ export function MemorySection() {
             icon={<Brain className="size-7" />}
             title="Nothing Saved Yet"
             description="Open a chat's menu and choose Save to Memory. Nexus will keep a short summary so it can remember the important parts."
-            action={<LinkButton href="/chat">Go to Chats</LinkButton>}
+            action={<LinkButton href="/">Go to Chats</LinkButton>}
           />
         </Card>
       ) : (
@@ -71,8 +71,8 @@ export function MemorySection() {
               <Card className="flex h-full flex-col p-5 sm:p-6">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h3 className="text-fg truncate text-base font-bold">{item.title}</h3>
-                    <p className="text-muted mt-0.5 text-xs">
+                    <h3 className="truncate text-base font-bold text-fg">{item.title}</h3>
+                    <p className="mt-0.5 text-xs text-muted">
                       Saved {formatDate(item.saved_at)} · {item.message_count} messages
                     </p>
                   </div>
@@ -80,13 +80,13 @@ export function MemorySection() {
                     {item.summary_type === "ai" ? "AI Summary" : "Excerpt"}
                   </Badge>
                 </div>
-                <p className="bg-bg-subtle text-fg-2 mt-4 flex-1 rounded-2xl p-4 text-sm leading-relaxed whitespace-pre-line">
+                <p className="mt-4 flex-1 rounded-2xl bg-bg-subtle p-4 text-sm leading-relaxed whitespace-pre-line text-fg-2">
                   {item.summary}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Link
-                    href={`/chat?c=${item.session_id}`}
-                    className="text-fg-2 hover:bg-surface-2 hover:text-fg inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-[13px] font-semibold"
+                    href={`/?c=${item.session_id}`}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-[13px] font-semibold text-fg-2 hover:bg-surface-2 hover:text-fg"
                   >
                     <ExternalLink className="size-4" aria-hidden />
                     Open Chat

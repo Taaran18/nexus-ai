@@ -1,7 +1,8 @@
 import { site } from "@/lib/config";
-import type { AuthResponse, StreamEvent, User } from "@/lib/types";
+import type { StreamEvent } from "@/lib/types";
 
-const REFRESH_KEY = "nexus.refresh";
+const VISITOR_KEY = "nexus.visitor";
+let memoryVisitor: string | null = null;
 
 export class ApiError extends Error {
   status: number;
@@ -14,55 +15,35 @@ export class ApiError extends Error {
   }
 }
 
-type Listener = (user: User | null) => void;
+function createId() {
+  const c = globalThis.crypto;
+  if (typeof c.randomUUID === "function") return c.randomUUID();
+  const bytes = c.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (b: number) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
 
-let accessToken: string | null = null;
-let accessExpiresAt = 0;
-let refreshPromise: Promise<User | null> | null = null;
-const listeners = new Set<Listener>();
-
-function readRefresh() {
+export function visitorId() {
   try {
-    return window.localStorage.getItem(REFRESH_KEY);
+    let id = window.localStorage.getItem(VISITOR_KEY);
+    if (!id) {
+      id = createId();
+      window.localStorage.setItem(VISITOR_KEY, id);
+    }
+    return id;
   } catch {
-    return null;
+    memoryVisitor ||= createId();
+    return memoryVisitor;
   }
 }
 
-function writeRefresh(value: string | null) {
+export function resetVisitor() {
   try {
-    if (value) window.localStorage.setItem(REFRESH_KEY, value);
-    else window.localStorage.removeItem(REFRESH_KEY);
+    window.localStorage.removeItem(VISITOR_KEY);
   } catch {}
-}
-
-export function onAuthChange(listener: Listener) {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
-}
-
-function emit(user: User | null) {
-  listeners.forEach((listener) => listener(user));
-}
-
-export function storeSession(response: AuthResponse) {
-  accessToken = response.access_token;
-  accessExpiresAt = Date.now() + response.expires_in * 1000;
-  writeRefresh(response.refresh_token);
-  emit(response.user);
-}
-
-export function clearSession(notify = true) {
-  accessToken = null;
-  accessExpiresAt = 0;
-  writeRefresh(null);
-  if (notify) emit(null);
-}
-
-export function hasStoredSession() {
-  return Boolean(readRefresh());
+  memoryVisitor = null;
 }
 
 async function parseError(response: Response): Promise<ApiError> {
@@ -87,54 +68,18 @@ const networkError = () =>
     "We couldn't reach Nexus. Check your internet connection and try again.",
   );
 
-export function refreshSession(): Promise<User | null> {
-  if (refreshPromise) return refreshPromise;
-  const token = readRefresh();
-  if (!token) return Promise.resolve(null);
-  refreshPromise = (async () => {
-    try {
-      const response = await fetch(`${site.apiUrl}/auth/refresh`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh_token: token }),
-      });
-      if (response.status === 401) {
-        clearSession();
-        return null;
-      }
-      if (!response.ok) throw await parseError(response);
-      const data = (await response.json()) as AuthResponse;
-      storeSession(data);
-      return data.user;
-    } catch (error) {
-      if (error instanceof ApiError) throw error;
-      throw networkError();
-    } finally {
-      refreshPromise = null;
-    }
-  })();
-  return refreshPromise;
-}
-
-async function authHeader(): Promise<Record<string, string>> {
-  if (!accessToken || Date.now() > accessExpiresAt - 30_000) await refreshSession();
-  return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
-}
-
 interface RequestOptions {
   method?: string;
   body?: unknown;
   form?: FormData;
-  auth?: boolean;
   signal?: AbortSignal;
 }
 
-async function send(path: string, options: RequestOptions, retry = true): Promise<Response> {
-  const headers: Record<string, string> = options.auth === false ? {} : await authHeader();
+async function send(path: string, options: RequestOptions): Promise<Response> {
+  const headers: Record<string, string> = { "X-Visitor-Id": visitorId() };
   if (options.body !== undefined) headers["Content-Type"] = "application/json";
-  let response: Response;
   try {
-    response = await fetch(`${site.apiUrl}${path}`, {
+    return await fetch(`${site.apiUrl}${path}`, {
       method: options.method ?? "GET",
       headers,
       body: options.form ?? (options.body !== undefined ? JSON.stringify(options.body) : undefined),
@@ -144,13 +89,6 @@ async function send(path: string, options: RequestOptions, retry = true): Promis
     if ((error as Error).name === "AbortError") throw error;
     throw networkError();
   }
-  if (response.status === 401 && options.auth !== false && retry && readRefresh()) {
-    accessToken = null;
-    const user = await refreshSession();
-    if (user) return send(path, options, false);
-  }
-  if (response.status === 401 && options.auth !== false) clearSession();
-  return response;
 }
 
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {

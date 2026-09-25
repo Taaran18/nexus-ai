@@ -38,7 +38,7 @@ export function Logo({
     >
       <LogoMark />
       {!compact && (
-        <span className="font-display text-fg text-lg font-extrabold tracking-tight">
+        <span className="font-display text-lg font-extrabold tracking-tight text-fg">
           Nexus<span className="text-brand"> AI</span>
         </span>
       )}

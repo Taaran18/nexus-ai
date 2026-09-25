@@ -44,8 +44,8 @@ export const MessageItem = memo(function MessageItem({
 }) {
   if (message.role === "user") {
     return (
-      <div className="animate-slide-up flex justify-end">
-        <div className="bg-surface-2 text-fg max-w-[85%] rounded-3xl rounded-br-lg px-5 py-3 text-[15px] leading-relaxed whitespace-pre-wrap sm:max-w-[75%]">
+      <div className="flex animate-slide-up justify-end">
+        <div className="max-w-[85%] rounded-3xl rounded-br-lg bg-surface-2 px-5 py-3 text-[15px] leading-relaxed whitespace-pre-wrap text-fg sm:max-w-[75%]">
           {message.content}
         </div>
       </div>
@@ -54,7 +54,7 @@ export const MessageItem = memo(function MessageItem({
 
   const waiting = streaming && !message.content;
   return (
-    <div className="animate-slide-up group flex gap-3 sm:gap-4">
+    <div className="group flex animate-slide-up gap-3 sm:gap-4">
       <LogoMark className="mt-0.5 size-8" />
       <div className="min-w-0 flex-1 space-y-3">
         {steps && steps.length > 0 && streaming && <Pipeline steps={steps} />}
@@ -80,14 +80,14 @@ export const MessageItem = memo(function MessageItem({
         {message.error && (
           <div
             role="alert"
-            className="border-danger/30 bg-danger-soft flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center"
+            className="flex flex-col gap-3 rounded-2xl border border-danger/30 bg-danger-soft p-4 sm:flex-row sm:items-center"
           >
-            <AlertTriangle className="text-danger size-5 shrink-0" aria-hidden />
-            <p className="text-fg flex-1 text-sm font-medium">{message.error}</p>
+            <AlertTriangle className="size-5 shrink-0 text-danger" aria-hidden />
+            <p className="flex-1 text-sm font-medium text-fg">{message.error}</p>
             {onRegenerate && (
               <button
                 onClick={onRegenerate}
-                className="bg-surface text-fg shadow-card hover:bg-surface-2 inline-flex h-9 items-center gap-2 self-start rounded-xl px-3.5 text-sm font-bold sm:self-auto"
+                className="inline-flex h-9 items-center gap-2 self-start rounded-xl bg-surface px-3.5 text-sm font-bold text-fg shadow-card hover:bg-surface-2 sm:self-auto"
               >
                 <RefreshCw className="size-4" aria-hidden />
                 Try Again
@@ -96,7 +96,7 @@ export const MessageItem = memo(function MessageItem({
           </div>
         )}
         {message.stopped && !message.error && (
-          <p className="text-muted text-sm font-medium">You stopped this reply.</p>
+          <p className="text-sm font-medium text-muted">You stopped this reply.</p>
         )}
         {!streaming && message.content && (
           <Actions
@@ -148,7 +148,7 @@ function ThinkingPanel({
   const [open, setOpen] = useState(false);
   const expanded = live || open;
   return (
-    <div className="border-think/25 bg-think-soft/60 overflow-hidden rounded-2xl border">
+    <div className="overflow-hidden rounded-2xl border border-think/25 bg-think-soft/60">
       <button
         onClick={() => setOpen((v) => !v)}
         aria-expanded={expanded}
@@ -156,22 +156,22 @@ function ThinkingPanel({
         className="flex w-full items-center gap-2.5 px-4 py-3 text-left"
       >
         <Lightbulb
-          className={cn("text-think size-4 shrink-0", live && "animate-pulse")}
+          className={cn("size-4 shrink-0 text-think", live && "animate-pulse")}
           aria-hidden
         />
-        <span className={cn("text-think flex-1 text-sm font-bold", live && "text-shimmer")}>
+        <span className={cn("flex-1 text-sm font-bold text-think", live && "text-shimmer")}>
           {live ? "Thinking it through" : "Thought Process"}
           {engine && <span className="font-medium opacity-80"> · {engine}</span>}
         </span>
         {!live && (
           <ChevronDown
-            className={cn("text-think size-4 transition-transform", expanded && "rotate-180")}
+            className={cn("size-4 text-think transition-transform", expanded && "rotate-180")}
             aria-hidden
           />
         )}
       </button>
       {expanded && text && (
-        <div className="border-think/20 text-fg-2 [&_.prose]:text-fg-2 max-h-80 scrollbar-thin overflow-y-auto border-t px-4 py-3 text-[14px] [&_.prose]:text-[14px]">
+        <div className="max-h-80 scrollbar-thin overflow-y-auto border-t border-think/20 px-4 py-3 text-[14px] text-fg-2 [&_.prose]:text-[14px] [&_.prose]:text-fg-2">
           <Markdown content={text} />
         </div>
       )}
@@ -182,7 +182,7 @@ function ThinkingPanel({
 function Sources({ sources }: { sources: NonNullable<Message["sources"]> }) {
   return (
     <div>
-      <p className="text-muted mb-2 text-xs font-bold tracking-wider uppercase">Sources</p>
+      <p className="mb-2 text-xs font-bold tracking-wider text-muted uppercase">Sources</p>
       <ul className="flex flex-wrap gap-2">
         {sources.map((source, index) => {
           const Icon = source.type === "web" ? Globe : BookOpenText;
@@ -192,7 +192,7 @@ function Sources({ sources }: { sources: NonNullable<Message["sources"]> }) {
           } catch {}
           const body = (
             <>
-              <Icon className="text-brand size-3.5 shrink-0" aria-hidden />
+              <Icon className="size-3.5 shrink-0 text-brand" aria-hidden />
               <span className="max-w-[220px] truncate">{host || source.title}</span>
             </>
           );
@@ -204,14 +204,14 @@ function Sources({ sources }: { sources: NonNullable<Message["sources"]> }) {
                   target="_blank"
                   rel="noopener noreferrer nofollow"
                   title={source.title}
-                  className="border-border bg-surface text-fg-2 hover:border-brand hover:text-fg inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-fg-2 transition-colors hover:border-brand hover:text-fg"
                 >
                   {body}
                 </a>
               ) : (
                 <span
                   title={source.title}
-                  className="border-border bg-surface text-fg-2 inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-fg-2"
                 >
                   {body}
                 </span>
@@ -254,7 +254,7 @@ function Actions({
             aria-label="Good reply"
             title="Good Reply"
             className={cn(
-              "hover:bg-surface-2 rounded-lg p-1.5 transition-colors",
+              "rounded-lg p-1.5 transition-colors hover:bg-surface-2",
               message.rating === 1 ? "text-success" : "text-muted hover:text-fg",
             )}
           >
@@ -266,7 +266,7 @@ function Actions({
             aria-label="Bad reply"
             title="Bad Reply"
             className={cn(
-              "hover:bg-surface-2 rounded-lg p-1.5 transition-colors",
+              "rounded-lg p-1.5 transition-colors hover:bg-surface-2",
               message.rating === -1 ? "text-danger" : "text-muted hover:text-fg",
             )}
           >
@@ -279,13 +279,13 @@ function Actions({
           onClick={onRegenerate}
           aria-label="Regenerate reply"
           title="Regenerate"
-          className="text-muted hover:bg-surface-2 hover:text-fg rounded-lg p-1.5 transition-colors"
+          className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface-2 hover:text-fg"
         >
           <RefreshCw className="size-4" />
         </button>
       )}
       {showStats && stats.length > 0 && (
-        <span className="text-muted ml-2 text-xs">{stats.join(" · ")}</span>
+        <span className="ml-2 text-xs text-muted">{stats.join(" · ")}</span>
       )}
     </div>
   );

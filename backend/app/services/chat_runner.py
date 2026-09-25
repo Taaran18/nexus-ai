@@ -110,6 +110,7 @@ async def stream_answer(
     model: str,
     llm,
     model_label: str,
+    ip: str,
     think: bool,
     use_memory: bool,
 ) -> AsyncIterator[str]:
@@ -214,6 +215,8 @@ async def stream_answer(
         raise
     except Exception as exc:
         code, text = _friendly_error(exc, provider)
+        if not answer:
+            await usage.refund(ip, "messages")
         if not isinstance(exc, AppError):
             logger.warning(
                 "generation_failed code=%s provider=%s model=%s error=%s", code, provider, model, type(exc).__name__

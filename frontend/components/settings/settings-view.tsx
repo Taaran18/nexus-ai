@@ -1,31 +1,19 @@
 "use client";
 
-import {
-  Brain,
-  Database,
-  KeyRound,
-  MonitorSmartphone,
-  Palette,
-  ShieldCheck,
-  SlidersHorizontal,
-  UserRound,
-} from "lucide-react";
+import { Brain, Database, Gauge, Info, KeyRound, Palette, SlidersHorizontal } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PageFrame } from "@/components/app/page-frame";
+import { AboutSection } from "@/components/settings/about-section";
 import { AppearanceSection } from "@/components/settings/appearance-section";
 import { DataSection } from "@/components/settings/data-section";
 import { MemorySection } from "@/components/settings/memory-section";
 import { ModelsSection } from "@/components/settings/models-section";
 import { PreferencesSection } from "@/components/settings/preferences-section";
-import { ProfileSection } from "@/components/settings/profile-section";
-import { SecuritySection } from "@/components/settings/security-section";
-import { SessionsSection } from "@/components/settings/sessions-section";
+import { UsageSection } from "@/components/settings/usage-section";
 import { PageHeader, Tabs } from "@/components/ui/misc";
 import { cn } from "@/lib/utils";
 
 const TABS = [
-  { value: "profile", label: "Profile", icon: UserRound, description: "Your name and email" },
-  { value: "appearance", label: "Appearance", icon: Palette, description: "Light or dark theme" },
   {
     value: "preferences",
     label: "Preferences",
@@ -39,14 +27,10 @@ const TABS = [
     description: "Free models and your API keys",
   },
   { value: "memory", label: "Memory", icon: Brain, description: "Chats Nexus remembers" },
-  { value: "security", label: "Security", icon: ShieldCheck, description: "Password and sign-out" },
-  {
-    value: "sessions",
-    label: "Sessions",
-    icon: MonitorSmartphone,
-    description: "Devices signed in",
-  },
+  { value: "usage", label: "Trial Usage", icon: Gauge, description: "Your daily limits" },
+  { value: "appearance", label: "Appearance", icon: Palette, description: "Light or dark theme" },
   { value: "data", label: "Data & Privacy", icon: Database, description: "Export or delete data" },
+  { value: "about", label: "About & Legal", icon: Info, description: "Policies and trial details" },
 ] as const;
 
 type Tab = (typeof TABS)[number]["value"];
@@ -55,15 +39,15 @@ export function SettingsView() {
   const params = useSearchParams();
   const router = useRouter();
   const requested = params.get("tab") as Tab | null;
-  const tab: Tab = TABS.some((t) => t.value === requested) ? (requested as Tab) : "profile";
+  const tab: Tab = TABS.some((t) => t.value === requested) ? (requested as Tab) : "preferences";
   const setTab = (value: Tab) => router.replace(`/settings?tab=${value}`, { scroll: false });
 
   return (
     <PageFrame>
       <PageHeader
         eyebrow="Settings"
-        title="Account Settings"
-        description="Manage your profile, models, memory, security and data in one place."
+        title="Settings"
+        description="Tune how Nexus answers, manage models and memory, and control your data."
       />
       <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
         <nav aria-label="Settings sections" className="hidden lg:block">
@@ -90,7 +74,7 @@ export function SettingsView() {
                       >
                         {t.label}
                       </span>
-                      <span className="text-muted block truncate text-xs">{t.description}</span>
+                      <span className="block truncate text-xs text-muted">{t.description}</span>
                     </span>
                   </button>
                 </li>
@@ -115,14 +99,13 @@ export function SettingsView() {
             role="tabpanel"
             aria-label={TABS.find((t) => t.value === tab)?.label}
           >
-            {tab === "profile" && <ProfileSection />}
             {tab === "appearance" && <AppearanceSection />}
             {tab === "preferences" && <PreferencesSection />}
             {tab === "models" && <ModelsSection />}
             {tab === "memory" && <MemorySection />}
-            {tab === "security" && <SecuritySection />}
-            {tab === "sessions" && <SessionsSection />}
+            {tab === "usage" && <UsageSection />}
             {tab === "data" && <DataSection />}
+            {tab === "about" && <AboutSection />}
           </div>
         </div>
       </div>

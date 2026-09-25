@@ -5,16 +5,16 @@ from fastapi import APIRouter, Depends, File, UploadFile
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from app.config import settings
-from app.core.auth import CurrentUser, get_current_user
 from app.core.errors import AppError
 from app.core.ratelimit import upload_limiter
+from app.core.visitor import Visitor, get_visitor
 from app.services.embeddings import embed_documents
-from app.store import documents
+from app.store import documents, usage
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 _ALLOWED = {".pdf", ".txt", ".md", ".markdown", ".csv"}
-_MAX_CHUNKS = 1500
-_MAX_DOCUMENTS = 100
+_MAX_CHUNKS = 600
+_MAX_DOCUMENTS = 20
 
 
 def _extract(name: str, raw: bytes) -> str:
@@ -43,17 +43,17 @@ def _extract(name: str, raw: bytes) -> str:
 
 
 @router.get("")
-async def list_documents(user: CurrentUser = Depends(get_current_user)):
-    return documents.list_documents(user.id)
+async def list_documents(visitor: Visitor = Depends(get_visitor)):
+    return documents.list_documents(visitor.id)
 
 
 @router.post("/upload", status_code=201)
-async def upload(file: UploadFile = File(...), user: CurrentUser = Depends(get_current_user)):
-    upload_limiter.check(user.id)
+async def upload(file: UploadFile = File(...), visitor: Visitor = Depends(get_visitor)):
+    upload_limiter.check(visitor.ip)
     name = PurePath(file.filename or "document.txt").name[:120]
     if PurePath(name).suffix.lower() not in _ALLOWED:
         raise AppError(400, "unsupported_type", "Upload a PDF, TXT, MD or CSV file.")
-    if len(documents.list_documents(user.id)) >= _MAX_DOCUMENTS:
+    if len(documents.list_documents(visitor.id)) >= _MAX_DOCUMENTS:
         raise AppError(
             409, "document_limit", f"You can keep up to {_MAX_DOCUMENTS} documents. Delete some to upload more."
         )
@@ -67,16 +67,21 @@ async def upload(file: UploadFile = File(...), user: CurrentUser = Depends(get_c
     if not text:
         raise AppError(400, "no_text", "We couldn't find any text in this file.")
     chunks = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100).split_text(text)[:_MAX_CHUNKS]
-    vectors = await embed_documents(chunks)
-    return await documents.add(user.id, name, len(raw), chunks, vectors)
+    await usage.consume(visitor.ip, visitor.id, "uploads")
+    try:
+        vectors = await embed_documents(chunks)
+    except Exception:
+        await usage.refund(visitor.ip, "uploads")
+        raise
+    return await documents.add(visitor.id, name, len(raw), chunks, vectors)
 
 
 @router.delete("/{doc_id}")
-async def delete_document(doc_id: str, user: CurrentUser = Depends(get_current_user)):
-    await documents.delete(user.id, doc_id)
+async def delete_document(doc_id: str, visitor: Visitor = Depends(get_visitor)):
+    await documents.delete(visitor.id, doc_id)
     return {"status": "deleted"}
 
 
 @router.delete("")
-async def delete_all_documents(user: CurrentUser = Depends(get_current_user)):
-    return {"deleted": await documents.delete_all(user.id)}
+async def delete_all_documents(visitor: Visitor = Depends(get_visitor)):
+    return {"deleted": await documents.delete_all(visitor.id)}

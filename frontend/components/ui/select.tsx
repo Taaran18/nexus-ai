@@ -186,8 +186,8 @@ export function Select<T extends string>({
         className={cn(
           renderTrigger
             ? "outline-none"
-            : "border-border bg-surface text-fg hover:border-border-strong focus-visible:border-brand flex h-11 w-full items-center justify-between gap-2 rounded-xl border px-3.5 text-left text-sm transition-colors disabled:opacity-60",
-          open && !renderTrigger && "border-brand ring-brand-ring/30 ring-4",
+            : "flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-border bg-surface px-3.5 text-left text-sm text-fg transition-colors hover:border-border-strong focus-visible:border-brand disabled:opacity-60",
+          open && !renderTrigger && "border-brand ring-4 ring-brand-ring/30",
           triggerClassName,
         )}
       >
@@ -203,7 +203,7 @@ export function Select<T extends string>({
             </span>
             <ChevronDown
               className={cn(
-                "text-muted size-4 shrink-0 transition-transform",
+                "size-4 shrink-0 text-muted transition-transform",
                 open && "rotate-180",
               )}
               aria-hidden
@@ -217,11 +217,11 @@ export function Select<T extends string>({
           <div
             ref={panelRef}
             style={floatingCss(position)}
-            className="animate-pop-in border-border bg-surface shadow-pop z-[80] flex flex-col overflow-hidden rounded-2xl border"
+            className="z-[80] flex animate-pop-in flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-pop"
           >
             {searchable && (
-              <div className="border-border flex items-center gap-2 border-b px-3">
-                <Search className="text-muted size-4" aria-hidden />
+              <div className="flex items-center gap-2 border-b border-border px-3">
+                <Search className="size-4 text-muted" aria-hidden />
                 <input
                   ref={searchRef}
                   value={query}
@@ -234,7 +234,7 @@ export function Select<T extends string>({
                   aria-label={searchPlaceholder}
                   aria-controls={listId}
                   aria-activedescendant={filtered[active] ? `${listId}-${active}` : undefined}
-                  className="text-fg placeholder:text-muted h-11 w-full bg-transparent text-sm outline-none"
+                  className="h-11 w-full bg-transparent text-sm text-fg outline-none placeholder:text-muted"
                 />
               </div>
             )}
@@ -249,7 +249,7 @@ export function Select<T extends string>({
               className="flex-1 scrollbar-thin overflow-y-auto p-1.5 outline-none"
             >
               {filtered.length === 0 && (
-                <p className="text-muted px-3 py-6 text-center text-sm">{emptyText}</p>
+                <p className="px-3 py-6 text-center text-sm text-muted">{emptyText}</p>
               )}
               {filtered.map((option, index) => {
                 const showGroup = option.group && option.group !== filtered[index - 1]?.group;
@@ -257,7 +257,7 @@ export function Select<T extends string>({
                 return (
                   <Fragment key={option.value}>
                     {showGroup && (
-                      <div className="text-muted px-3 pt-3 pb-1.5 text-[11px] font-bold tracking-wider uppercase first:pt-1.5">
+                      <div className="px-3 pt-3 pb-1.5 text-[11px] font-bold tracking-wider text-muted uppercase first:pt-1.5">
                         {option.group}
                       </div>
                     )}
@@ -289,14 +289,14 @@ export function Select<T extends string>({
                           {option.meta}
                         </span>
                         {option.description && (
-                          <span className="text-muted mt-0.5 block text-[13px] leading-snug">
+                          <span className="mt-0.5 block text-[13px] leading-snug text-muted">
                             {option.description}
                           </span>
                         )}
                       </span>
                       <Check
                         className={cn(
-                          "text-brand mt-0.5 size-4 shrink-0",
+                          "mt-0.5 size-4 shrink-0 text-brand",
                           !isSelected && "invisible",
                         )}
                         aria-hidden
@@ -306,7 +306,7 @@ export function Select<T extends string>({
                 );
               })}
             </div>
-            {footer && <div className="border-border bg-bg-subtle border-t">{footer}</div>}
+            {footer && <div className="border-t border-border bg-bg-subtle">{footer}</div>}
           </div>,
           document.body,
         )}

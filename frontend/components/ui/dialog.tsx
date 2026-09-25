@@ -89,7 +89,7 @@ export function Dialog({
   return createPortal(
     <div className="fixed inset-0 z-[90] flex items-end justify-center p-0 sm:items-center sm:p-6">
       <div
-        className="animate-fade-in bg-overlay absolute inset-0 backdrop-blur-[2px]"
+        className="absolute inset-0 animate-fade-in bg-overlay backdrop-blur-[2px]"
         onClick={() => dismissible && onClose()}
         aria-hidden
       />
@@ -101,7 +101,7 @@ export function Dialog({
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
         className={cn(
-          "animate-slide-up border-border bg-surface shadow-pop relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-3xl border outline-none sm:rounded-3xl",
+          "relative flex max-h-[92dvh] w-full animate-slide-up flex-col overflow-hidden rounded-t-3xl border border-border bg-surface shadow-pop outline-none sm:rounded-3xl",
           size === "sm" && "sm:max-w-md",
           size === "md" && "sm:max-w-xl",
           size === "lg" && "sm:max-w-3xl",
@@ -110,11 +110,11 @@ export function Dialog({
         <div className="flex items-start gap-4 px-6 pt-6">
           {icon}
           <div className="min-w-0 flex-1">
-            <h2 id={titleId} className="text-fg text-lg font-bold">
+            <h2 id={titleId} className="text-lg font-bold text-fg">
               {title}
             </h2>
             {description && (
-              <div id={descriptionId} className="text-fg-2 mt-1.5 text-sm leading-relaxed">
+              <div id={descriptionId} className="mt-1.5 text-sm leading-relaxed text-fg-2">
                 {description}
               </div>
             )}
@@ -123,7 +123,7 @@ export function Dialog({
             <button
               onClick={onClose}
               aria-label="Close dialog"
-              className="text-muted hover:bg-surface-2 hover:text-fg -mt-1 -mr-2 rounded-xl p-2 transition-colors"
+              className="-mt-1 -mr-2 rounded-xl p-2 text-muted transition-colors hover:bg-surface-2 hover:text-fg"
             >
               <X className="size-5" />
             </button>
@@ -131,7 +131,7 @@ export function Dialog({
         </div>
         {children && <div className="scrollbar-thin overflow-y-auto px-6 pt-5">{children}</div>}
         {footer && (
-          <div className="border-border bg-bg-subtle mt-6 flex flex-col-reverse gap-2 border-t px-6 py-4 sm:flex-row sm:justify-end">
+          <div className="mt-6 flex flex-col-reverse gap-2 border-t border-border bg-bg-subtle px-6 py-4 sm:flex-row sm:justify-end">
             {footer}
           </div>
         )}
@@ -199,7 +199,7 @@ export function ConfirmDialog({
       dismissible={!busy}
       icon={
         tone === "danger" ? (
-          <span className="bg-danger-soft text-danger grid size-11 shrink-0 place-items-center rounded-2xl">
+          <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-danger-soft text-danger">
             <AlertTriangle className="size-5" aria-hidden />
           </span>
         ) : undefined
@@ -226,8 +226,8 @@ export function ConfirmDialog({
           {children}
           {confirmText && (
             <label className="block space-y-1.5">
-              <span className="text-fg-2 text-sm">
-                Type <span className="text-fg font-mono font-semibold">{confirmText}</span> to
+              <span className="text-sm text-fg-2">
+                Type <span className="font-mono font-semibold text-fg">{confirmText}</span> to
                 confirm.
               </span>
               <Input

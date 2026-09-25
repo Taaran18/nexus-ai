@@ -7,7 +7,6 @@ import {
   FolderPlus,
   LayoutDashboard,
   Library,
-  LogOut,
   MessageSquarePlus,
   MoreHorizontal,
   Pin,
@@ -17,13 +16,12 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useChatActions } from "@/components/app/chat-actions";
 import { useWorkspace } from "@/components/app/workspace-provider";
 import { LogoMark } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/brand/theme-toggle";
-import { useAuth } from "@/components/providers/auth-provider";
 import { Menu } from "@/components/ui/menu";
 import { Skeleton } from "@/components/ui/misc";
 import type { ChatSummary, Folder } from "@/lib/types";
@@ -104,7 +102,7 @@ export function Sidebar({
       <>
         <div
           className={cn(
-            "bg-overlay fixed inset-0 z-40 transition-opacity duration-300",
+            "fixed inset-0 z-40 bg-overlay transition-opacity duration-300",
             mobileOpen ? "opacity-100" : "pointer-events-none opacity-0",
           )}
           onClick={onMobileClose}
@@ -115,7 +113,7 @@ export function Sidebar({
           aria-hidden={!mobileOpen}
           inert={!mobileOpen}
           className={cn(
-            "border-border bg-bg-subtle shadow-pop fixed inset-y-0 left-0 z-50 flex w-[min(320px,88vw)] flex-col border-r transition-transform duration-300 ease-out",
+            "fixed inset-y-0 left-0 z-50 flex w-[min(320px,88vw)] flex-col border-r border-border bg-bg-subtle shadow-pop transition-transform duration-300 ease-out",
             mobileOpen ? "translate-x-0" : "-translate-x-full",
           )}
         >
@@ -145,7 +143,7 @@ export function Sidebar({
         if (!event.currentTarget.contains(event.relatedTarget as Node)) setKeyboardFocus(false);
       }}
       style={{ width: expanded ? EXPANDED : COLLAPSED }}
-      className="border-border bg-bg-subtle relative z-30 flex h-dvh shrink-0 flex-col overflow-hidden border-r transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+      className="relative z-30 flex h-dvh shrink-0 flex-col overflow-hidden border-r border-border bg-bg-subtle transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
     >
       <SidebarContent
         expanded={expanded}
@@ -174,13 +172,11 @@ function SidebarContent({
 }) {
   const pathname = usePathname();
   const params = useSearchParams();
-  const router = useRouter();
-  const { user, logout } = useAuth();
   const { chats, chatsLoading, folders } = useWorkspace();
   const actions = useChatActions();
   const [query, setQuery] = useState("");
   const [collapsedFolders, setCollapsedFolders] = useState<Record<string, boolean>>({});
-  const activeChat = pathname === "/chat" ? params.get("c") : null;
+  const activeChat = pathname === "/" ? params.get("c") : null;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -196,12 +192,13 @@ function SidebarContent({
   const loose = filtered.filter((c) => !c.folder_id || !folders.some((f) => f.id === c.folder_id));
   const groups = groupChats(loose);
   const hide = expanded ? "opacity-100" : "pointer-events-none opacity-0";
-  const initials = (user?.name || user?.email || "?")
-    .split(/\s+/)
-    .map((p) => p[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+  const { usage } = useWorkspace();
+  const leftPercent = usage
+    ? Math.round((usage.messages_left / Math.max(1, usage.messages_limit)) * 100)
+    : 100;
+  const usageTitle = usage
+    ? `Free trial: ${usage.messages_left} of ${usage.messages_limit} messages left today`
+    : "Free trial usage";
 
   const navigate = () => onClose?.();
 
@@ -209,7 +206,7 @@ function SidebarContent({
     <div className="flex h-full w-[288px] flex-col">
       <div className="flex h-16 shrink-0 items-center gap-2 px-[18px]">
         <Link
-          href="/chat"
+          href="/"
           onClick={navigate}
           className="flex min-w-0 items-center gap-3 rounded-xl"
           aria-label="Nexus AI, new chat"
@@ -217,7 +214,7 @@ function SidebarContent({
           <LogoMark className="size-10" />
           <span
             className={cn(
-              "font-display text-fg text-lg font-extrabold whitespace-nowrap transition-opacity duration-200",
+              "font-display text-lg font-extrabold whitespace-nowrap text-fg transition-opacity duration-200",
               hide,
             )}
           >
@@ -229,7 +226,7 @@ function SidebarContent({
             <button
               onClick={onClose}
               aria-label="Close sidebar"
-              className="text-muted hover:bg-surface-2 hover:text-fg grid size-9 place-items-center rounded-xl"
+              className="grid size-9 place-items-center rounded-xl text-muted hover:bg-surface-2 hover:text-fg"
             >
               <X className="size-5" />
             </button>
@@ -252,11 +249,11 @@ function SidebarContent({
 
       <div className="space-y-1 px-3.5 pt-1">
         <Link
-          href="/chat"
+          href="/"
           onClick={navigate}
           title="New Chat"
           className={cn(
-            "bg-brand-solid text-on-brand shadow-card hover:bg-brand-hover flex h-12 items-center gap-3 overflow-hidden rounded-2xl transition-[width,background-color] duration-300",
+            "flex h-12 items-center gap-3 overflow-hidden rounded-2xl bg-brand-solid text-on-brand shadow-card transition-[width,background-color] duration-300 hover:bg-brand-hover",
             expanded ? "w-full" : "w-12",
           )}
         >
@@ -306,14 +303,14 @@ function SidebarContent({
           <label className="relative block">
             <span className="sr-only">Search chats</span>
             <Search
-              className="text-muted pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2"
+              className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted"
               aria-hidden
             />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search Chats"
-              className="border-border bg-surface text-fg placeholder:text-muted focus:border-brand h-10 w-full rounded-xl border pr-3 pl-10 text-sm outline-none"
+              className="h-10 w-full rounded-xl border border-border bg-surface pr-3 pl-10 text-sm text-fg outline-none placeholder:text-muted focus:border-brand"
             />
           </label>
         </div>
@@ -323,14 +320,14 @@ function SidebarContent({
           className="mt-3 min-h-0 flex-1 scrollbar-thin overflow-y-auto px-2.5 pb-4"
         >
           <div className="flex items-center justify-between px-2.5 pt-2 pb-1.5">
-            <span className="text-muted text-[11px] font-bold tracking-wider uppercase">
+            <span className="text-[11px] font-bold tracking-wider text-muted uppercase">
               Folders
             </span>
             <button
               onClick={actions.newFolder}
               aria-label="New folder"
               title="New Folder"
-              className="text-muted hover:bg-surface-2 hover:text-fg grid size-7 place-items-center rounded-lg"
+              className="grid size-7 place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"
             >
               <FolderPlus className="size-4" />
             </button>
@@ -338,7 +335,7 @@ function SidebarContent({
           {folders.length === 0 && (
             <button
               onClick={actions.newFolder}
-              className="border-border text-muted hover:border-brand hover:text-brand mx-1 mb-2 w-[calc(100%-0.5rem)] rounded-xl border border-dashed px-3 py-2.5 text-left text-[13px]"
+              className="mx-1 mb-2 w-[calc(100%-0.5rem)] rounded-xl border border-dashed border-border px-3 py-2.5 text-left text-[13px] text-muted hover:border-brand hover:text-brand"
             >
               Create a folder to organise chats
             </button>
@@ -363,15 +360,15 @@ function SidebarContent({
               ))}
             </div>
           ) : chats.length === 0 ? (
-            <p className="text-muted px-3 pt-5 text-[13px] leading-relaxed">
+            <p className="px-3 pt-5 text-[13px] leading-relaxed text-muted">
               Your chats will appear here. Start one with New Chat.
             </p>
           ) : filtered.length === 0 ? (
-            <p className="text-muted px-3 pt-5 text-[13px]">No chats match “{query}”.</p>
+            <p className="px-3 pt-5 text-[13px] text-muted">No chats match “{query}”.</p>
           ) : (
             groups.map((group) => (
               <div key={group.label} className="pt-3">
-                <p className="text-muted px-2.5 pb-1.5 text-[11px] font-bold tracking-wider uppercase">
+                <p className="px-2.5 pb-1.5 text-[11px] font-bold tracking-wider text-muted uppercase">
                   {group.label}
                 </p>
                 {group.chats.map((chat) => (
@@ -389,13 +386,13 @@ function SidebarContent({
         </nav>
       </div>
 
-      <div className="border-border mt-auto space-y-1 border-t px-3.5 py-3">
+      <div className="mt-auto space-y-1 border-t border-border px-3.5 py-3">
         {!expanded && !mobile && (
           <button
             onClick={onPin}
             aria-label="Expand and pin sidebar"
             title="Expand Sidebar"
-            className="text-muted hover:bg-surface-2 hover:text-fg grid h-10 w-12 place-items-center rounded-xl"
+            className="grid h-10 w-12 place-items-center rounded-xl text-muted hover:bg-surface-2 hover:text-fg"
           >
             <ChevronsRight className="size-5" />
           </button>
@@ -408,53 +405,48 @@ function SidebarContent({
         >
           <ThemeToggle withLabel={expanded} className={expanded ? undefined : "ml-1"} />
         </div>
-        <Menu
-          ariaLabel="Account"
-          onOpenChange={lock}
-          floating={{ side: "top", align: "start", minWidth: 250 }}
-          items={[
-            { heading: user?.email ?? "Account" },
-            {
-              label: "Settings",
-              icon: <Settings className="size-4" />,
-              onSelect: () => router.push("/settings"),
-            },
-            {
-              label: "Memory",
-              icon: <Brain className="size-4" />,
-              onSelect: () => router.push("/settings?tab=memory"),
-            },
-            { separator: true },
-            {
-              label: "Sign Out",
-              icon: <LogOut className="size-4" />,
-              onSelect: async () => {
-                await logout();
-                router.replace("/login");
-              },
-            },
-          ]}
-          trigger={(props) => (
-            <button
-              {...props}
-              title="Account"
-              className="hover:bg-surface-2 flex h-12 w-full items-center gap-3 rounded-2xl text-left transition-colors"
-            >
-              <span className="grid size-12 shrink-0 place-items-center">
-                <span className="bg-fg text-bg grid size-9 place-items-center rounded-full text-[13px] font-bold">
-                  {initials}
-                </span>
-              </span>
-              <span className={cn("min-w-0 flex-1 transition-opacity duration-200", hide)}>
-                <span className="text-fg block truncate text-sm font-bold">
-                  {user?.name || "Your Account"}
-                </span>
-                <span className="text-muted block truncate text-xs">{user?.email}</span>
-              </span>
-              <MoreHorizontal className={cn("text-muted mr-2 size-4", hide)} aria-hidden />
-            </button>
-          )}
-        />
+        <Link
+          href="/settings?tab=usage"
+          onClick={navigate}
+          title={usageTitle}
+          aria-label={usageTitle}
+          className="flex h-12 w-full items-center gap-3 rounded-2xl transition-colors hover:bg-surface-2"
+        >
+          <span className="relative grid size-12 shrink-0 place-items-center">
+            <svg viewBox="0 0 36 36" className="size-9 -rotate-90" aria-hidden>
+              <circle
+                cx="18"
+                cy="18"
+                r="15"
+                fill="none"
+                strokeWidth="3.5"
+                className="stroke-surface-3"
+              />
+              <circle
+                cx="18"
+                cy="18"
+                r="15"
+                fill="none"
+                strokeWidth="3.5"
+                strokeLinecap={leftPercent > 0 ? "round" : "butt"}
+                pathLength={100}
+                strokeDasharray={`${leftPercent} 100`}
+                className={leftPercent <= 20 ? "stroke-danger" : "stroke-brand"}
+              />
+            </svg>
+            <span className="absolute text-[11px] font-bold text-fg">
+              {usage ? usage.messages_left : "–"}
+            </span>
+          </span>
+          <span className={cn("min-w-0 flex-1 transition-opacity duration-200", hide)}>
+            <span className="block truncate text-sm font-bold text-fg">Free Trial</span>
+            <span className="block truncate text-xs text-muted">
+              {usage
+                ? `${usage.messages_left} of ${usage.messages_limit} messages left today`
+                : "Checking your usage"}
+            </span>
+          </span>
+        </Link>
       </div>
     </div>
   );
@@ -480,15 +472,15 @@ function FolderGroup({
   const actions = useChatActions();
   return (
     <div className="mb-0.5">
-      <div className="group hover:bg-surface-2 flex items-center rounded-xl">
+      <div className="group flex items-center rounded-xl hover:bg-surface-2">
         <button
           onClick={onToggle}
           aria-expanded={!collapsed}
-          className="text-fg-2 flex h-9 min-w-0 flex-1 items-center gap-2 px-2.5 text-left text-sm font-semibold"
+          className="flex h-9 min-w-0 flex-1 items-center gap-2 px-2.5 text-left text-sm font-semibold text-fg-2"
         >
           <ChevronRight
             className={cn(
-              "text-muted size-3.5 shrink-0 transition-transform",
+              "size-3.5 shrink-0 text-muted transition-transform",
               !collapsed && "rotate-90",
             )}
             aria-hidden
@@ -499,7 +491,7 @@ function FolderGroup({
             aria-hidden
           />
           <span className="truncate">{folder.name}</span>
-          <span className="text-muted ml-auto text-xs font-medium">{chats.length}</span>
+          <span className="ml-auto text-xs font-medium text-muted">{chats.length}</span>
         </button>
         <Menu
           ariaLabel={`${folder.name} options`}
@@ -509,7 +501,7 @@ function FolderGroup({
             <button
               {...props}
               aria-label={`Options for folder ${folder.name}`}
-              className="text-muted hover:bg-surface-3 hover:text-fg mr-1 grid size-7 place-items-center rounded-lg opacity-100 aria-expanded:opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
+              className="mr-1 grid size-7 place-items-center rounded-lg text-muted opacity-100 hover:bg-surface-3 hover:text-fg aria-expanded:opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
             >
               <MoreHorizontal className="size-4" />
             </button>
@@ -517,9 +509,9 @@ function FolderGroup({
         />
       </div>
       {!collapsed && (
-        <div className="border-border ml-4 border-l pl-1.5">
+        <div className="ml-4 border-l border-border pl-1.5">
           {chats.length === 0 ? (
-            <p className="text-muted px-3 py-1.5 text-xs">No chats in this folder yet</p>
+            <p className="px-3 py-1.5 text-xs text-muted">No chats in this folder yet</p>
           ) : (
             chats.map((chat) => (
               <ChatLink
@@ -557,16 +549,16 @@ function ChatLink({
       )}
     >
       <Link
-        href={`/chat?c=${chat.id}`}
+        href={`/?c=${chat.id}`}
         onClick={onNavigate}
         aria-current={active ? "page" : undefined}
         className={cn(
           "flex h-9 min-w-0 flex-1 items-center gap-2 pr-9 pl-3 text-sm",
-          active ? "text-fg font-semibold" : "text-fg-2",
+          active ? "font-semibold text-fg" : "text-fg-2",
         )}
       >
         {chat.in_memory && (
-          <Brain className="text-brand size-3.5 shrink-0" aria-label="Saved to memory" />
+          <Brain className="size-3.5 shrink-0 text-brand" aria-label="Saved to memory" />
         )}
         <span className="truncate">{chat.title}</span>
       </Link>
@@ -579,7 +571,7 @@ function ChatLink({
             {...props}
             aria-label={`Options for ${chat.title}`}
             className={cn(
-              "text-muted hover:bg-surface-3 hover:text-fg absolute right-1 grid size-7 place-items-center rounded-lg aria-expanded:opacity-100",
+              "absolute right-1 grid size-7 place-items-center rounded-lg text-muted hover:bg-surface-3 hover:text-fg aria-expanded:opacity-100",
               active
                 ? "opacity-100"
                 : "opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100",
