@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlertTriangle,
   ArrowDown,
   Brain,
   FileSearch,
@@ -10,10 +11,12 @@ import {
   MessageSquareOff,
   MoreHorizontal,
   PenLine,
+  RefreshCw,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useChatActions } from "@/components/app/chat-actions";
+import { LogoMark } from "@/components/brand/logo";
 import { useWorkspace } from "@/components/app/workspace-provider";
 import { Composer, type ComposerHandle } from "@/components/chat/composer";
 import { MessageItem, type Step } from "@/components/chat/message-item";
@@ -145,6 +148,9 @@ export function ChatView() {
     setStreaming(true);
     setSteps([]);
     stickRef.current = true;
+    let terminal = false;
+    const grow = (m: Message, text: string): Message =>
+      m.live ? { ...m, live: { ...m.live, chars: m.live.chars + text.length } } : m;
     try {
       for await (const event of stream) {
         if (controller.signal.aborted) break;
@@ -180,18 +186,32 @@ export function ChatView() {
             updateAssistant(tempId, (m) => ({ ...m, sources: event.sources }));
             break;
           case "thinking":
-            updateAssistant(tempId, (m) => ({
-              ...m,
-              thinking: (m.thinking ?? "") + event.content,
-            }));
+            updateAssistant(tempId, (m) =>
+              grow({ ...m, thinking: (m.thinking ?? "") + event.content }, event.content),
+            );
             break;
           case "token":
-            updateAssistant(tempId, (m) => ({ ...m, content: m.content + event.content }));
+            updateAssistant(tempId, (m) =>
+              grow({ ...m, content: m.content + event.content }, event.content),
+            );
+            break;
+          case "usage":
+            updateAssistant(tempId, (m) => ({
+              ...m,
+              input_tokens: event.input_tokens,
+              output_tokens: event.output_tokens,
+              total_tokens: event.total_tokens,
+              tokens_estimated: event.estimated,
+              live: m.live
+                ? { ...m.live, confirmed: event.total_tokens, chars: 0, estimated: event.estimated }
+                : m.live,
+            }));
             break;
           case "title":
             workspace.patchChat(event.chat_id, { title: event.title });
             break;
           case "done":
+            terminal = true;
             updateAssistant(tempId, () => ({ ...event.message }));
             workspace.patchChat(event.chat_id, {
               updated_at: event.message.created_at,
@@ -199,13 +219,38 @@ export function ChatView() {
             });
             break;
           case "error":
-            updateAssistant(tempId, (m) => ({ ...m, error: event.message, pending: false }));
+            terminal = true;
+            updateAssistant(tempId, (m) => ({
+              ...m,
+              error: event.message,
+              error_code: event.code,
+              pending: false,
+              time_ms: m.live ? Date.now() - m.live.started : m.time_ms,
+            }));
             break;
         }
       }
+      if (!terminal) {
+        const stopped = controller.signal.aborted;
+        updateAssistant(tempId, (m) => ({
+          ...m,
+          pending: false,
+          stopped,
+          time_ms: m.live ? Date.now() - m.live.started : m.time_ms,
+          error: stopped
+            ? null
+            : "The connection closed before Nexus finished replying. Your message was saved, so you can try again.",
+          error_code: stopped ? null : "connection_closed",
+        }));
+      }
     } catch (error) {
       if ((error as Error).name === "AbortError") {
-        updateAssistant(tempId, (m) => ({ ...m, stopped: true, pending: false }));
+        updateAssistant(tempId, (m) => ({
+          ...m,
+          stopped: true,
+          pending: false,
+          time_ms: m.live ? Date.now() - m.live.started : m.time_ms,
+        }));
       } else if (error instanceof ApiError && LIMIT_CODES.includes(error.code)) {
         setMessages((current) => current.filter((m) => m.id !== tempId && m.id !== restore.userId));
         if (restore.text) composerRef.current?.fill(restore.text);
@@ -216,7 +261,12 @@ export function ChatView() {
           error instanceof ApiError
             ? error.message
             : "We lost the connection while writing the reply. Try again.";
-        updateAssistant(tempId, (m) => ({ ...m, error: message, pending: false }));
+        updateAssistant(tempId, (m) => ({
+          ...m,
+          error: message,
+          error_code: error instanceof ApiError ? error.code : "network",
+          pending: false,
+        }));
       }
     } finally {
       if (abortRef.current === controller) abortRef.current = null;
@@ -239,6 +289,7 @@ export function ChatView() {
     think: workspace.think,
     think_engine: workspace.think ? (workspace.catalog?.think.engine ?? null) : null,
     pending: true,
+    live: { started: Date.now(), confirmed: 0, chars: 0, estimated: true },
   });
 
   const send = async (text: string) => {
@@ -510,6 +561,28 @@ export function ChatView() {
                 />
               );
             })
+          )}
+          {!streaming && loadState === "idle" && messages[messages.length - 1]?.role === "user" && (
+            <div className="flex gap-3 sm:gap-4">
+              <LogoMark className="mt-0.5 size-8" />
+              <div
+                role="alert"
+                className="flex flex-1 flex-col gap-3 rounded-2xl border border-danger/30 bg-danger-soft p-4 sm:flex-row sm:items-center"
+              >
+                <AlertTriangle className="size-5 shrink-0 text-danger" aria-hidden />
+                <p className="flex-1 text-sm font-medium text-fg">
+                  This message didn&apos;t get a reply. The connection may have dropped or the model
+                  was unavailable.
+                </p>
+                <button
+                  onClick={regenerate}
+                  className="inline-flex h-9 items-center gap-2 self-start rounded-xl bg-surface px-3.5 text-sm font-bold text-fg shadow-card hover:bg-surface-2 sm:self-auto"
+                >
+                  <RefreshCw className="size-4" aria-hidden />
+                  Try Again
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </div>

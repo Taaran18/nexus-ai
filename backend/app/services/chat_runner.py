@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import math
 import re
 import time
 from collections.abc import AsyncIterator
@@ -15,6 +16,7 @@ from app.llm.factory import byok_model, groq_catalog_model, groq_model, think_en
 from app.llm.providers import get_provider
 from app.services import memory
 from app.store import chats, documents, keys
+from app.store import usage as trial_usage
 
 logger = logging.getLogger("nexus")
 
@@ -41,6 +43,20 @@ def to_history(messages: list[dict], limit: int = 20) -> list[BaseMessage]:
     return history
 
 
+GENERATION_TIMEOUT = 180
+
+
+def _usage_of(event: dict) -> tuple[int, int, bool]:
+    output = event["data"].get("output")
+    meta = getattr(output, "usage_metadata", None)
+    if isinstance(meta, dict) and meta.get("total_tokens"):
+        return int(meta.get("input_tokens", 0)), int(meta.get("output_tokens", 0)), False
+    batches = (event["data"].get("input") or {}).get("messages") or []
+    input_chars = sum(len(str(getattr(m, "content", ""))) for batch in batches for m in batch)
+    output_chars = len(getattr(output, "text", "") or "")
+    return math.ceil(input_chars / 4), math.ceil(output_chars / 4), True
+
+
 def _sse(payload: dict) -> str:
     return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
@@ -56,7 +72,14 @@ def _friendly_error(exc: Exception, provider: str) -> tuple[str, str]:
         else (get_provider(provider).name if get_provider(provider) else "The model provider")
     )
     if status in (401, 403) or "Authentication" in name or "PermissionDenied" in name:
-        return "invalid_key", f"{source} rejected the API key. Update it in Settings → Models & Keys."
+        if provider == "groq":
+            logger.error("groq_key_rejected check GROQ_API_KEY in the backend environment")
+            return (
+                "service_unavailable",
+                "The free models aren't available right now because Nexus can't connect to Groq. "
+                "Try again later, or pick a model from your own API key in Settings → Models & Keys.",
+            )
+        return "invalid_key", f"{source} rejected your API key. Update it in Settings → Models & Keys."
     if status == 429 or "RateLimit" in name:
         return "rate_limited", f"{source} is receiving too many requests right now. Wait a moment and try again."
     if status == 404 or "NotFound" in name:
@@ -68,7 +91,7 @@ def _friendly_error(exc: Exception, provider: str) -> tuple[str, str]:
             "too_long",
             "This conversation is too long for the selected model. Start a new chat or pick a model with a larger context.",
         )
-    if "Timeout" in name or isinstance(exc, asyncio.TimeoutError):
+    if "Timeout" in name or isinstance(exc, (asyncio.TimeoutError, TimeoutError)):
         return "timeout", f"{source} took too long to respond. Try again, or pick a faster model."
     if "Connection" in name:
         return "provider_unreachable", f"We couldn't reach {source}. Try again in a moment."
@@ -118,7 +141,7 @@ async def stream_answer(
     answer, thinking = "", ""
     sources: list[dict] = []
     intent = "general"
-    usage_tokens = 0
+    tokens = {"input": 0, "output": 0, "estimated": False}
     finished = False
     think_label = think_engine()[1] if think else None
 
@@ -134,7 +157,10 @@ async def stream_answer(
             thinking=thinking or None,
             sources=sources,
             intent=intent,
-            total_tokens=usage_tokens or None,
+            input_tokens=tokens["input"] or None,
+            output_tokens=tokens["output"] or None,
+            total_tokens=(tokens["input"] + tokens["output"]) or None,
+            tokens_estimated=tokens["estimated"],
             time_ms=int((time.monotonic() - started) * 1000),
             stopped=stopped,
         )
@@ -160,39 +186,53 @@ async def stream_answer(
             "sources": [],
             "analysis": "",
         }
-        async for event in nexus_graph.astream_events(state, config={"configurable": {"llm": llm}}, version="v2"):
-            kind = event["event"]
-            node = event.get("metadata", {}).get("langgraph_node", "")
-            if kind == "on_chain_start" and event.get("name") in NODE_LABELS and node == event.get("name"):
-                yield _sse({"type": "node_start", "node": node, "label": NODE_LABELS[node]})
-            elif kind == "on_chain_end" and event.get("name") == "classify" and node == "classify":
-                intent = (event["data"].get("output") or {}).get("intent", "general")
-                yield _sse({"type": "intent", "intent": intent})
-            elif (
-                kind == "on_chain_end" and event.get("name") in ("retrieve", "web_search") and node == event.get("name")
-            ):
-                sources = (event["data"].get("output") or {}).get("sources", [])
-                if sources:
-                    yield _sse({"type": "sources", "sources": sources})
-            elif kind == "on_chat_model_stream" and node in ("deliberate", "generate"):
-                chunk = event["data"]["chunk"]
-                reasoning = (chunk.additional_kwargs or {}).get("reasoning_content") or ""
-                text = chunk.text or ""
-                if node == "deliberate":
-                    piece = text or reasoning
-                    if piece:
-                        thinking += piece
-                        yield _sse({"type": "thinking", "content": piece})
-                else:
-                    if reasoning and think:
-                        thinking += reasoning
-                        yield _sse({"type": "thinking", "content": reasoning})
-                    if text:
-                        answer += text
-                        yield _sse({"type": "token", "content": text})
-            elif kind == "on_chat_model_end" and node == "generate":
-                usage = getattr(event["data"].get("output"), "usage_metadata", None) or {}
-                usage_tokens = usage.get("total_tokens", 0) if isinstance(usage, dict) else 0
+        async with asyncio.timeout(GENERATION_TIMEOUT):
+            async for event in nexus_graph.astream_events(state, config={"configurable": {"llm": llm}}, version="v2"):
+                kind = event["event"]
+                node = event.get("metadata", {}).get("langgraph_node", "")
+                if kind == "on_chain_start" and event.get("name") in NODE_LABELS and node == event.get("name"):
+                    yield _sse({"type": "node_start", "node": node, "label": NODE_LABELS[node]})
+                elif kind == "on_chain_end" and event.get("name") == "classify" and node == "classify":
+                    intent = (event["data"].get("output") or {}).get("intent", "general")
+                    yield _sse({"type": "intent", "intent": intent})
+                elif (
+                    kind == "on_chain_end"
+                    and event.get("name") in ("retrieve", "web_search")
+                    and node == event.get("name")
+                ):
+                    sources = (event["data"].get("output") or {}).get("sources", [])
+                    if sources:
+                        yield _sse({"type": "sources", "sources": sources})
+                elif kind == "on_chat_model_stream" and node in ("deliberate", "generate"):
+                    chunk = event["data"]["chunk"]
+                    reasoning = (chunk.additional_kwargs or {}).get("reasoning_content") or ""
+                    text = chunk.text or ""
+                    if node == "deliberate":
+                        piece = text or reasoning
+                        if piece:
+                            thinking += piece
+                            yield _sse({"type": "thinking", "content": piece})
+                    else:
+                        if reasoning and think:
+                            thinking += reasoning
+                            yield _sse({"type": "thinking", "content": reasoning})
+                        if text:
+                            answer += text
+                            yield _sse({"type": "token", "content": text})
+                elif kind == "on_chat_model_end" and node in ("classify", "deliberate", "generate"):
+                    used_in, used_out, estimated = _usage_of(event)
+                    tokens["input"] += used_in
+                    tokens["output"] += used_out
+                    tokens["estimated"] = tokens["estimated"] or estimated
+                    yield _sse(
+                        {
+                            "type": "usage",
+                            "input_tokens": tokens["input"],
+                            "output_tokens": tokens["output"],
+                            "total_tokens": tokens["input"] + tokens["output"],
+                            "estimated": tokens["estimated"],
+                        }
+                    )
         if not answer.strip():
             raise AppError(
                 502, "empty_answer", "The model returned an empty answer. Try again or pick a different model."
@@ -214,16 +254,19 @@ async def stream_answer(
                 logger.warning("partial_save_failed chat=%s", chat_id)
         raise
     except Exception as exc:
-        code, text = _friendly_error(exc, provider)
-        if not answer:
-            await usage.refund(ip, "messages")
+        try:
+            code, text = _friendly_error(exc, provider)
+        except Exception:
+            code, text = "generation_failed", "Something went wrong while writing the answer. Try again."
         if not isinstance(exc, AppError):
             logger.warning(
                 "generation_failed code=%s provider=%s model=%s error=%s", code, provider, model, type(exc).__name__
             )
-        if answer and not finished:
-            try:
+        try:
+            if not answer:
+                await trial_usage.refund(ip, "messages")
+            elif not finished:
                 await chats.append(user_id, chat_id, build_message(stopped=True))
-            except Exception:
-                pass
-        yield _sse({"type": "error", "code": code, "message": text, "chat_id": chat_id})
+        except Exception:
+            logger.exception("error_cleanup_failed chat=%s", chat_id)
+        yield _sse({"type": "error", "code": code, "message": text, "chat_id": chat_id, "refunded": not answer})

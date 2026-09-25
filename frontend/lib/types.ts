@@ -44,11 +44,23 @@ export interface Message {
   thinking?: string | null;
   sources?: Source[];
   intent?: string;
+  input_tokens?: number | null;
+  output_tokens?: number | null;
   total_tokens?: number | null;
+  tokens_estimated?: boolean;
   time_ms?: number | null;
   stopped?: boolean;
   error?: string | null;
+  error_code?: string | null;
   pending?: boolean;
+  live?: LiveUsage;
+}
+
+export interface LiveUsage {
+  started: number;
+  confirmed: number;
+  chars: number;
+  estimated: boolean;
 }
 
 export interface ChatSummary {
@@ -171,7 +183,14 @@ export type StreamEvent =
   | { type: "token"; content: string }
   | { type: "title"; chat_id: string; title: string }
   | { type: "done"; chat_id: string; message: Message }
-  | { type: "error"; code: string; message: string; chat_id?: string };
+  | {
+      type: "usage";
+      input_tokens: number;
+      output_tokens: number;
+      total_tokens: number;
+      estimated: boolean;
+    }
+  | { type: "error"; code: string; message: string; chat_id?: string; refunded?: boolean };
 
 export interface ModelChoice {
   provider: string;
