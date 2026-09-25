@@ -70,11 +70,16 @@ export function UsageSection() {
             </>
           ) : (
             <>
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-3 md:grid-cols-3">
                 <Meter
                   label="Messages Today"
                   used={usage.messages_used}
                   limit={usage.messages_limit}
+                />
+                <Meter
+                  label="Voice Recordings Today"
+                  used={usage.voice_used}
+                  limit={usage.voice_limit}
                 />
                 <Meter
                   label="File Uploads Today"
@@ -117,6 +122,13 @@ export function UsageSection() {
               <Td className="font-semibold">File Uploads per Day</Td>
               <Td className="text-right tabular-nums">{usage?.uploads_limit ?? "—"}</Td>
               <Td className="text-fg-2">PDF, TXT, Markdown or CSV, up to 10 MB each.</Td>
+            </Tr>
+            <Tr>
+              <Td className="font-semibold">Voice Recordings per Day</Td>
+              <Td className="text-right tabular-nums">{usage?.voice_limit ?? "—"}</Td>
+              <Td className="text-fg-2">
+                Up to a minute each. Failed transcriptions aren&apos;t counted.
+              </Td>
             </Tr>
             <Tr>
               <Td className="font-semibold">Saved Memories</Td>

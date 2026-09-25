@@ -16,4 +16,5 @@ class NexusState(TypedDict, total=False):
     has_documents: bool
     answer: str
     source_mode: str
+    board: dict | None
     document_ids: list[str]

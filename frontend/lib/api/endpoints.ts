@@ -95,6 +95,14 @@ export const memoryApi = {
   remove: (chatId: string) => api<void>(`/memory/${chatId}`, { method: "DELETE" }),
 };
 
+export const voiceApi = {
+  transcribe: (audio: Blob, filename: string) => {
+    const form = new FormData();
+    form.append("file", audio, filename);
+    return api<{ text: string }>("/voice/transcribe", { method: "POST", form });
+  },
+};
+
 export const modelApi = {
   catalog: () => api<Catalog>("/models"),
   providers: () => api<ProviderInfo[]>("/providers"),

@@ -11,6 +11,9 @@ export interface Usage {
   uploads_limit: number;
   uploads_used: number;
   uploads_left: number;
+  voice_limit: number;
+  voice_used: number;
+  voice_left: number;
   max_turns_per_chat: number;
   resets_at: string;
 }
@@ -84,6 +87,37 @@ export interface Message {
   source_mode?: "auto" | "documents" | "ai";
   document_ids?: string[];
   clarify?: Clarify;
+  pipeline?: PipelineStep[];
+  board?: DecisionBoardData | null;
+}
+
+export interface PipelineStep {
+  node: string;
+  label: string;
+  ms?: number;
+  tokens?: number;
+  detail?: string;
+  done: boolean;
+}
+
+export interface BoardCriterion {
+  name: string;
+  weight: number;
+  why: string;
+}
+
+export interface BoardOption {
+  name: string;
+  summary: string;
+  scores: Record<string, number>;
+}
+
+export interface DecisionBoardData {
+  title: string;
+  criteria: BoardCriterion[];
+  options: BoardOption[];
+  recommendation: string | null;
+  reason: string;
 }
 
 export interface LiveUsage {
@@ -220,6 +254,8 @@ export type StreamEvent =
       total_tokens: number;
       estimated: boolean;
     }
+  | { type: "node_end"; node: string; label: string; ms: number; tokens: number; detail: string }
+  | { type: "board"; board: DecisionBoardData }
   | { type: "clarify"; message: string; documents: ClarifyDocument[] }
   | { type: "error"; code: string; message: string; chat_id?: string; refunded?: boolean };
 

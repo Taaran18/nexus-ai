@@ -2,6 +2,7 @@ from langgraph.graph import END, START, StateGraph
 
 from app.graph.nodes import (
     classify,
+    decide,
     deliberate,
     generate,
     retrieve,
@@ -17,6 +18,7 @@ NODE_LABELS = {
     "web_search": "Searching the web",
     "deliberate": "Thinking it through",
     "generate": "Writing the answer",
+    "decide": "Building the decision board",
 }
 
 
@@ -27,6 +29,7 @@ def build_graph():
     graph.add_node("web_search", web_search)
     graph.add_node("deliberate", deliberate)
     graph.add_node("generate", generate)
+    graph.add_node("decide", decide)
     graph.add_edge(START, "classify")
     graph.add_conditional_edges(
         "classify",
@@ -36,6 +39,8 @@ def build_graph():
     for node in ("retrieve", "web_search"):
         graph.add_conditional_edges(node, route_after_context, {"deliberate": "deliberate", "generate": "generate"})
     graph.add_edge("deliberate", "generate")
+    graph.add_edge("deliberate", "decide")
+    graph.add_edge("decide", END)
     graph.add_edge("generate", END)
     return graph.compile()
 

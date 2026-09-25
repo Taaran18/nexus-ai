@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     trial_daily_messages: int = Field(default=25, alias="TRIAL_DAILY_MESSAGES")
     trial_max_turns_per_chat: int = Field(default=15, alias="TRIAL_MAX_TURNS_PER_CHAT")
     trial_daily_uploads: int = Field(default=5, alias="TRIAL_DAILY_UPLOADS")
+    trial_daily_voice: int = Field(default=30, alias="TRIAL_DAILY_VOICE")
+    whisper_model: str = Field(default="whisper-large-v3-turbo", alias="WHISPER_MODEL")
     trust_proxy: bool = Field(default=True, alias="TRUST_PROXY")
 
     @property

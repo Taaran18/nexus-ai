@@ -9,6 +9,7 @@ _KEEP_DAYS = 14
 _LIMITS = {
     "messages": lambda: settings.trial_daily_messages,
     "uploads": lambda: settings.trial_daily_uploads,
+    "voice": lambda: settings.trial_daily_voice,
 }
 
 
@@ -36,6 +37,10 @@ def _prune(record: dict) -> None:
 
 
 def _limit_message(kind: str, limit: int) -> str:
+    if kind == "voice":
+        return (
+            f"You've used today's {limit} voice recordings. Type your message, or try voice again after midnight UTC."
+        )
     if kind == "uploads":
         noun = "upload" if limit == 1 else "uploads"
         return f"You've used today's {limit} trial file {noun}. You can upload again after midnight UTC."
@@ -48,7 +53,7 @@ async def consume(ip: str, visitor_id: str, kind: str) -> None:
     async with lock(f"usage:{ip}"):
         record = _read(ip)
         _prune(record)
-        today = record["days"].setdefault(_today(), {"messages": 0, "uploads": 0})
+        today = record["days"].setdefault(_today(), {"messages": 0, "uploads": 0, "voice": 0})
         if today.get(kind, 0) >= limit:
             raise AppError(429, "trial_limit", _limit_message(kind, limit))
         today[kind] = today.get(kind, 0) + 1
@@ -71,6 +76,7 @@ def summary(ip: str) -> dict:
     today = _read(ip)["days"].get(_today(), {})
     messages_used = today.get("messages", 0)
     uploads_used = today.get("uploads", 0)
+    voice_used = today.get("voice", 0)
     return {
         "messages_limit": settings.trial_daily_messages,
         "messages_used": messages_used,
@@ -78,6 +84,9 @@ def summary(ip: str) -> dict:
         "uploads_limit": settings.trial_daily_uploads,
         "uploads_used": uploads_used,
         "uploads_left": max(0, settings.trial_daily_uploads - uploads_used),
+        "voice_limit": settings.trial_daily_voice,
+        "voice_used": voice_used,
+        "voice_left": max(0, settings.trial_daily_voice - voice_used),
         "max_turns_per_chat": settings.trial_max_turns_per_chat,
         "resets_at": _resets_at(),
     }

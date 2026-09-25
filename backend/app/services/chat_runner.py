@@ -46,6 +46,40 @@ def to_history(messages: list[dict], limit: int = 20) -> list[BaseMessage]:
 
 GENERATION_TIMEOUT = 180
 
+STEP_NAMES = {
+    "classify": "Understand",
+    "retrieve": "Documents",
+    "web_search": "Web Search",
+    "deliberate": "Think",
+    "generate": "Write",
+    "decide": "Decision Board",
+}
+
+_INTENT_DETAIL = {
+    "rag": "About your documents",
+    "search": "Needs fresh information",
+    "general": "Answer from knowledge",
+}
+
+
+def _step_detail(node: str, output: dict) -> str:
+    if node == "classify":
+        return _INTENT_DETAIL.get(output.get("intent", "general"), "")
+    if node == "retrieve":
+        count = len(output.get("sources") or [])
+        return f"{count} passage{'s' if count != 1 else ''} found" if count else "No matching passages"
+    if node == "web_search":
+        count = len(output.get("sources") or [])
+        return f"{count} result{'s' if count != 1 else ''}" if count else "No results"
+    if node == "deliberate":
+        return "Options weighed"
+    if node == "generate":
+        words = len((output.get("answer") or "").split())
+        return f"{words} words"
+    if node == "decide":
+        return "Board ready" if output.get("board") else "Not a decision"
+    return ""
+
 
 def _usage_of(event: dict) -> tuple[int, int, bool]:
     output = event["data"].get("output")
@@ -145,6 +179,10 @@ async def stream_answer(
     sources: list[dict] = []
     intent = "general"
     tokens = {"input": 0, "output": 0, "estimated": False}
+    pipeline: list[dict] = []
+    node_started: dict[str, float] = {}
+    node_tokens: dict[str, int] = {}
+    board: dict | None = None
     finished = False
     think_label = think_engine()[1] if think else None
 
@@ -166,6 +204,8 @@ async def stream_answer(
             tokens_estimated=tokens["estimated"],
             source_mode=source_mode,
             document_ids=document_ids or [],
+            pipeline=pipeline,
+            board=board,
             time_ms=int((time.monotonic() - started) * 1000),
             stopped=stopped,
         )
@@ -198,23 +238,36 @@ async def stream_answer(
                 kind = event["event"]
                 node = event.get("metadata", {}).get("langgraph_node", "")
                 if kind == "on_chain_start" and event.get("name") in NODE_LABELS and node == event.get("name"):
+                    node_started[node] = time.monotonic()
                     yield _sse({"type": "node_start", "node": node, "label": NODE_LABELS[node]})
-                elif kind == "on_chain_end" and event.get("name") == "classify" and node == "classify":
-                    intent = (event["data"].get("output") or {}).get("intent", "general")
-                    yield _sse({"type": "intent", "intent": intent})
-                elif (
-                    kind == "on_chain_end"
-                    and event.get("name") in ("retrieve", "web_search")
-                    and node == event.get("name")
-                ):
-                    sources = (event["data"].get("output") or {}).get("sources", [])
-                    if sources:
-                        yield _sse(
-                            {
-                                "type": "sources",
-                                "sources": [{k: v for k, v in s.items() if k != "line_numbers"} for s in sources],
-                            }
-                        )
+                elif kind == "on_chain_end" and event.get("name") in NODE_LABELS and node == event.get("name"):
+                    output = event["data"].get("output") or {}
+                    if node == "classify":
+                        intent = output.get("intent", "general")
+                        yield _sse({"type": "intent", "intent": intent})
+                    elif node in ("retrieve", "web_search"):
+                        sources = output.get("sources", [])
+                        if sources:
+                            yield _sse(
+                                {
+                                    "type": "sources",
+                                    "sources": [{k: v for k, v in s.items() if k != "line_numbers"} for s in sources],
+                                }
+                            )
+                    elif node == "decide":
+                        board = output.get("board")
+                        if board:
+                            yield _sse({"type": "board", "board": board})
+                    now = time.monotonic()
+                    step = {
+                        "node": node,
+                        "label": STEP_NAMES.get(node, node),
+                        "ms": int((now - node_started.get(node, now)) * 1000),
+                        "tokens": node_tokens.get(node, 0),
+                        "detail": _step_detail(node, output),
+                    }
+                    pipeline.append(step)
+                    yield _sse({"type": "node_end", **step})
                 elif kind == "on_chat_model_stream" and node in ("deliberate", "generate"):
                     chunk = event["data"]["chunk"]
                     reasoning = (chunk.additional_kwargs or {}).get("reasoning_content") or ""
@@ -231,8 +284,9 @@ async def stream_answer(
                         if text:
                             answer += text
                             yield _sse({"type": "token", "content": text})
-                elif kind == "on_chat_model_end" and node in ("classify", "deliberate", "generate"):
+                elif kind == "on_chat_model_end" and node in NODE_LABELS:
                     used_in, used_out, estimated = _usage_of(event)
+                    node_tokens[node] = node_tokens.get(node, 0) + used_in + used_out
                     tokens["input"] += used_in
                     tokens["output"] += used_out
                     tokens["estimated"] = tokens["estimated"] or estimated

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -7,6 +8,7 @@ from app.config import settings
 from app.graph import prompts
 from app.graph.state import NexusState
 from app.llm.factory import groq_model, think_engine
+from app.services.board import parse_board
 from app.services.embeddings import embed_query
 from app.services.search import web_search as run_web_search
 from app.store import documents
@@ -118,6 +120,25 @@ async def generate(state: NexusState, config: RunnableConfig) -> NexusState:
         messages.append(SystemMessage(content=prompts.ANALYSIS.format(analysis=state["analysis"])))
     result = await llm.ainvoke(messages + state["history"])
     return {"answer": result.text or ""}
+
+
+async def decide(state: NexusState) -> NexusState:
+    if not state.get("analysis"):
+        return {"board": None}
+    try:
+        result = await asyncio.wait_for(
+            groq_model(settings.router_model, temperature=0, reasoning_effort="low").ainvoke(
+                [
+                    SystemMessage(content=prompts.DECIDE),
+                    HumanMessage(content=f"Question: {state['question'][:2000]}\n\nNotes:\n{state['analysis'][:6000]}"),
+                ]
+            ),
+            timeout=45,
+        )
+        return {"board": parse_board(result.text or "")}
+    except Exception as exc:
+        logger.warning("decide_failed error=%s", type(exc).__name__)
+        return {"board": None}
 
 
 def route_after_classify(state: NexusState) -> str:

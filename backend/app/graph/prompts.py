@@ -56,3 +56,20 @@ ANALYSIS = """Your deliberation notes for this request:
 {analysis}
 
 Write the final answer now. Lead with the recommendation or conclusion, then explain the reasoning briefly. Don't repeat the notes verbatim."""
+
+
+DECIDE = """You turn decision notes into a decision matrix. Reply with ONE JSON object and nothing else.
+
+If the user is NOT choosing between at least two real options, reply exactly: {"is_decision": false}
+
+Otherwise reply:
+{
+  "is_decision": true,
+  "title": "short Title Case name for the decision",
+  "criteria": [{"name": "Cost", "weight": 4, "why": "one short sentence"}],
+  "options": [{"name": "Option name", "summary": "one short sentence", "scores": {"Cost": 7}}],
+  "recommendation": "Option name",
+  "reason": "one sentence on why"
+}
+
+Rules: 2 to 5 options, 3 to 6 criteria. Weights are integers 1-5 (how much it matters to this user). Scores are integers 1-10 where 10 is always best for the user (so for cost, cheaper scores higher). Every option must score every criterion. Base everything on the notes and question; don't invent facts."""

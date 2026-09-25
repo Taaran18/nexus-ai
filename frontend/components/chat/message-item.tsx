@@ -3,19 +3,19 @@
 import {
   AlertTriangle,
   BookOpenText,
-  Check,
   ChevronDown,
   Coins,
   FileText,
   Globe,
   KeyRound,
   Lightbulb,
-  Loader2,
   RefreshCw,
   Sparkles,
   ThumbsDown,
+  Square,
   ThumbsUp,
   Timer,
+  Volume2,
 } from "lucide-react";
 import Link from "next/link";
 import { memo, useEffect, useState } from "react";
@@ -24,7 +24,9 @@ import { Markdown } from "@/components/chat/markdown";
 import { LogoMark } from "@/components/brand/logo";
 import { ClarifyCard } from "@/components/chat/clarify-card";
 import { References } from "@/components/chat/references";
-import type { LiveUsage, Message, SourceChoice } from "@/lib/types";
+import { DecisionBoard } from "@/components/chat/decision-board";
+import { PipelineView } from "@/components/chat/pipeline-view";
+import type { LiveUsage, Message, PipelineStep, SourceChoice } from "@/lib/types";
 import { cn, formatDuration } from "@/lib/utils";
 
 const KEY_ERRORS = [
@@ -34,12 +36,6 @@ const KEY_ERRORS = [
   "quota_exceeded",
   "model_unavailable",
 ];
-
-export interface Step {
-  node: string;
-  label: string;
-  done: boolean;
-}
 
 export const MessageItem = memo(function MessageItem({
   message,
@@ -52,7 +48,7 @@ export const MessageItem = memo(function MessageItem({
   onChooseSource,
 }: {
   message: Message;
-  steps?: Step[];
+  steps?: PipelineStep[];
   streaming?: boolean;
   isLast?: boolean;
   showStats?: boolean;
@@ -100,7 +96,12 @@ export const MessageItem = memo(function MessageItem({
             General AI Answer
           </span>
         )}
-        {steps && steps.length > 0 && streaming && <Pipeline steps={steps} />}
+        {streaming
+          ? steps && steps.length > 0 && <PipelineView steps={steps} live />
+          : message.pipeline &&
+            message.pipeline.length > 0 && (
+              <PipelineView steps={message.pipeline} totalMs={message.time_ms} />
+            )}
         {(message.thinking || (message.think && streaming)) && (
           <ThinkingPanel
             text={message.thinking ?? ""}
@@ -122,6 +123,7 @@ export const MessageItem = memo(function MessageItem({
             {streaming && <span className="caret" aria-hidden />}
           </div>
         )}
+        {message.board && <DecisionBoard board={message.board} />}
         {references.length > 0 && <References sources={references} messageId={message.id} />}
         {otherSources.length > 0 && <Sources sources={otherSources} />}
         {message.error && (
@@ -162,30 +164,6 @@ export const MessageItem = memo(function MessageItem({
     </div>
   );
 });
-
-function Pipeline({ steps }: { steps: Step[] }) {
-  return (
-    <ol className="flex flex-wrap items-center gap-2" aria-label="Progress">
-      {steps.map((step) => (
-        <li
-          key={step.node}
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition-colors",
-            step.node === "deliberate" ? "bg-think-soft text-think" : "bg-brand-soft text-brand",
-            step.done && "opacity-70",
-          )}
-        >
-          {step.done ? (
-            <Check className="size-3.5" aria-hidden />
-          ) : (
-            <Loader2 className="size-3.5 animate-spin" aria-hidden />
-          )}
-          {step.label}
-        </li>
-      ))}
-    </ol>
-  );
-}
 
 function ThinkingPanel({
   text,
@@ -275,6 +253,19 @@ function Sources({ sources }: { sources: NonNullable<Message["sources"]> }) {
   );
 }
 
+function toSpeech(markdown: string) {
+  return markdown
+    .replace(/```[\s\S]*?```/g, " Code example omitted. ")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\[(\d{1,2})\](?!\()/g, "")
+    .replace(/!?\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .replace(/^\s*\|?[-:| ]+\|?\s*$/gm, "")
+    .replace(/[#*_>|~]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function liveTokens(live: LiveUsage) {
   return live.confirmed + Math.ceil(live.chars / 4);
 }
@@ -357,9 +348,46 @@ function Actions({
   onRate?: (rating: 1 | -1 | null) => void;
 }) {
   const persisted = !message.id.startsWith("tmp-");
+  const [speaking, setSpeaking] = useState(false);
+  const canSpeak = typeof window !== "undefined" && "speechSynthesis" in window;
+  useEffect(
+    () => () => {
+      if (speaking) window.speechSynthesis.cancel();
+    },
+    [speaking],
+  );
+  const toggleSpeech = () => {
+    const synth = window.speechSynthesis;
+    if (speaking) {
+      synth.cancel();
+      setSpeaking(false);
+      return;
+    }
+    synth.cancel();
+    const utterance = new SpeechSynthesisUtterance(toSpeech(message.content));
+    utterance.rate = 1.02;
+    utterance.onend = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+    synth.speak(utterance);
+    setSpeaking(true);
+  };
   return (
     <div className="flex flex-wrap items-center gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 [&:has([aria-pressed=true])]:opacity-100">
       <CopyButton text={message.content} label="Copy reply" />
+      {canSpeak && (
+        <button
+          onClick={toggleSpeech}
+          aria-pressed={speaking}
+          aria-label={speaking ? "Stop reading aloud" : "Read reply aloud"}
+          title={speaking ? "Stop Reading" : "Listen"}
+          className={cn(
+            "rounded-lg p-1.5 transition-colors hover:bg-surface-2",
+            speaking ? "text-brand" : "text-muted hover:text-fg",
+          )}
+        >
+          {speaking ? <Square className="size-4 fill-current" /> : <Volume2 className="size-4" />}
+        </button>
+      )}
       {persisted && onRate && (
         <>
           <button

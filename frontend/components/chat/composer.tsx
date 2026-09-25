@@ -1,12 +1,12 @@
 "use client";
 
-import { ArrowUp, Lightbulb, Loader2, Mic, MicOff, Paperclip, Square } from "lucide-react";
+import { ArrowUp, Lightbulb, Loader2, Mic, Paperclip, Square, X } from "lucide-react";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { ModelPicker } from "@/components/chat/model-picker";
 import { useWorkspace } from "@/components/app/workspace-provider";
 import { useToast } from "@/components/providers/toast-provider";
 import { ApiError } from "@/lib/api/client";
-import { documentApi } from "@/lib/api/endpoints";
+import { documentApi, voiceApi } from "@/lib/api/endpoints";
 import { cn } from "@/lib/utils";
 
 export interface ComposerHandle {
@@ -14,15 +14,19 @@ export interface ComposerHandle {
   fill: (text: string) => void;
 }
 
-interface SpeechRecognitionLike {
-  lang: string;
-  interimResults: boolean;
-  continuous: boolean;
-  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
-  onerror: (() => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
+type VoiceState = "idle" | "recording" | "transcribing";
+
+const MAX_RECORDING_SECONDS = 60;
+const AUDIO_TYPES: Array<[string, string]> = [
+  ["audio/webm;codecs=opus", "webm"],
+  ["audio/webm", "webm"],
+  ["audio/mp4", "mp4"],
+  ["audio/ogg;codecs=opus", "ogg"],
+];
+
+function pickAudioType() {
+  if (typeof MediaRecorder === "undefined") return null;
+  return AUDIO_TYPES.find(([type]) => MediaRecorder.isTypeSupported(type)) ?? ["", "webm"];
 }
 
 const ACCEPT = ".pdf,.txt,.md,.markdown,.csv";
@@ -41,14 +45,17 @@ export const Composer = forwardRef<
   { onSend, onStop, streaming, disabled, placeholder = "Ask Nexus anything", autoFocus },
   ref,
 ) {
-  const { think, setThink, catalog, preferences } = useWorkspace();
+  const { think, setThink, catalog, preferences, refreshUsage } = useWorkspace();
   const toast = useToast();
   const [value, setValue] = useState("");
   const [uploading, setUploading] = useState<string | null>(null);
-  const [listening, setListening] = useState(false);
+  const [voice, setVoice] = useState<VoiceState>("idle");
+  const [seconds, setSeconds] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const cancelledRef = useRef(false);
+  const timerRef = useRef<number>(0);
   const enterToSend = preferences.enter_to_send !== false;
   const thinkEngine = catalog?.think.engine ?? "a reasoning model";
 
@@ -75,7 +82,15 @@ export const Composer = forwardRef<
     if (autoFocus && window.matchMedia("(min-width: 768px)").matches) textareaRef.current?.focus();
   }, [autoFocus]);
 
-  useEffect(() => () => recognitionRef.current?.stop(), []);
+  useEffect(
+    () => () => {
+      cancelledRef.current = true;
+      window.clearInterval(timerRef.current);
+      const recorder = recorderRef.current;
+      if (recorder && recorder.state !== "inactive") recorder.stop();
+    },
+    [],
+  );
 
   const submit = () => {
     const text = value.trim();
@@ -95,44 +110,84 @@ export const Composer = forwardRef<
     }
   };
 
-  const toggleVoice = () => {
-    const w = window as unknown as {
-      SpeechRecognition?: new () => SpeechRecognitionLike;
-      webkitSpeechRecognition?: new () => SpeechRecognitionLike;
-    };
-    const Recognition = w.SpeechRecognition ?? w.webkitSpeechRecognition;
-    if (!Recognition) {
+  const transcribe = async (blob: Blob, extension: string) => {
+    setVoice("transcribing");
+    try {
+      const { text } = await voiceApi.transcribe(blob, `voice.${extension}`);
+      setValue((current) => (current.trim() ? `${current.trim()} ${text}` : text));
+      requestAnimationFrame(() => textareaRef.current?.focus());
+    } catch (error) {
+      toast.error(
+        "Couldn't Transcribe That",
+        error instanceof ApiError ? error.message : undefined,
+      );
+    } finally {
+      setVoice("idle");
+      refreshUsage();
+    }
+  };
+
+  const stopRecording = (cancel = false) => {
+    cancelledRef.current = cancel;
+    window.clearInterval(timerRef.current);
+    const recorder = recorderRef.current;
+    if (recorder && recorder.state !== "inactive") recorder.stop();
+    if (cancel) setVoice("idle");
+  };
+
+  const startRecording = async () => {
+    const audioType = pickAudioType();
+    if (!audioType || !navigator.mediaDevices?.getUserMedia) {
       toast.error(
         "Voice Input Isn't Available",
-        "Your browser doesn't support speech recognition. Try Chrome or Edge.",
+        "This browser can't record audio. Please type your message.",
       );
       return;
     }
-    if (listening) {
-      recognitionRef.current?.stop();
-      return;
-    }
-    const recognition = new Recognition();
-    recognition.lang = navigator.language || "en-US";
-    recognition.interimResults = false;
-    recognition.continuous = false;
-    recognition.onresult = (event) => {
-      const transcript = Array.from(event.results)
-        .map((r) => r[0].transcript)
-        .join(" ");
-      setValue((current) => (current ? `${current} ${transcript}` : transcript));
-    };
-    recognition.onerror = () => {
-      setListening(false);
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
       toast.error(
-        "Voice Input Stopped",
-        "We couldn't hear you. Check microphone permissions and try again.",
+        "Microphone Blocked",
+        "Allow microphone access in your browser's site settings, then try again.",
       );
+      return;
+    }
+    const [mimeType, extension] = audioType;
+    const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = (event) => {
+      if (event.data.size) chunks.push(event.data);
     };
-    recognition.onend = () => setListening(false);
-    recognitionRef.current = recognition;
-    recognition.start();
-    setListening(true);
+    recorder.onstop = () => {
+      stream.getTracks().forEach((track) => track.stop());
+      recorderRef.current = null;
+      if (cancelledRef.current) return;
+      const blob = new Blob(chunks, { type: recorder.mimeType || mimeType || "audio/webm" });
+      if (blob.size < 800) {
+        setVoice("idle");
+        toast.error("Nothing Recorded", "Hold the mic button a little longer and speak clearly.");
+        return;
+      }
+      transcribe(blob, extension);
+    };
+    cancelledRef.current = false;
+    recorderRef.current = recorder;
+    recorder.start();
+    setSeconds(0);
+    setVoice("recording");
+    const started = Date.now();
+    timerRef.current = window.setInterval(() => {
+      const elapsed = Math.floor((Date.now() - started) / 1000);
+      setSeconds(elapsed);
+      if (elapsed >= MAX_RECORDING_SECONDS) stopRecording();
+    }, 250);
+  };
+
+  const toggleVoice = () => {
+    if (voice === "recording") stopRecording();
+    else if (voice === "idle") startRecording();
   };
 
   const upload = async (file: File) => {
@@ -185,11 +240,13 @@ export const Composer = forwardRef<
         placeholder={
           disabled
             ? "Trial limit reached"
-            : listening
-              ? "Listening…"
-              : think
-                ? "Describe the decision or problem"
-                : placeholder
+            : voice === "recording"
+              ? "Listening… tap the mic to finish"
+              : voice === "transcribing"
+                ? "Turning your voice into text…"
+                : think
+                  ? "Describe the decision or problem"
+                  : placeholder
         }
         className="block max-h-60 min-h-[56px] w-full resize-none scrollbar-thin bg-transparent px-5 pt-4 pb-2 text-base leading-relaxed text-fg outline-none placeholder:text-muted disabled:cursor-not-allowed"
       />
@@ -236,20 +293,47 @@ export const Composer = forwardRef<
           <ModelPicker compact />
         </div>
         <div className="flex shrink-0 items-center gap-1">
+          {voice === "recording" && (
+            <button
+              type="button"
+              onClick={() => stopRecording(true)}
+              aria-label="Cancel recording"
+              title="Cancel Recording"
+              className="grid size-9 place-items-center rounded-xl text-fg-2 transition-colors hover:bg-surface-2 hover:text-fg"
+            >
+              <X className="size-[18px]" />
+            </button>
+          )}
           <button
             type="button"
             onClick={toggleVoice}
-            aria-pressed={listening}
-            aria-label={listening ? "Stop voice input" : "Start voice input"}
-            title={listening ? "Stop Voice Input" : "Voice Input"}
+            disabled={voice === "transcribing" || disabled}
+            aria-pressed={voice === "recording"}
+            aria-label={
+              voice === "recording"
+                ? "Finish recording"
+                : voice === "transcribing"
+                  ? "Transcribing"
+                  : "Record a voice message"
+            }
+            title={voice === "recording" ? "Finish Recording" : "Voice Input"}
             className={cn(
-              "grid size-9 place-items-center rounded-xl transition-colors",
-              listening
-                ? "animate-pulse bg-danger-soft text-danger"
+              "inline-flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-xl px-2 text-sm font-bold tabular-nums transition-colors disabled:opacity-60",
+              voice === "recording"
+                ? "bg-danger-soft text-danger"
                 : "text-fg-2 hover:bg-surface-2 hover:text-fg",
             )}
           >
-            {listening ? <MicOff className="size-[18px]" /> : <Mic className="size-[18px]" />}
+            {voice === "transcribing" ? (
+              <Loader2 className="size-[18px] animate-spin" />
+            ) : voice === "recording" ? (
+              <>
+                <span className="size-2 animate-pulse rounded-full bg-danger" aria-hidden />
+                0:{String(seconds).padStart(2, "0")}
+              </>
+            ) : (
+              <Mic className="size-[18px]" />
+            )}
           </button>
           {streaming ? (
             <button

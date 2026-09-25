@@ -20,14 +20,14 @@ import { useChatActions } from "@/components/app/chat-actions";
 import { LogoMark } from "@/components/brand/logo";
 import { useWorkspace } from "@/components/app/workspace-provider";
 import { Composer, type ComposerHandle } from "@/components/chat/composer";
-import { MessageItem, type Step } from "@/components/chat/message-item";
+import { MessageItem } from "@/components/chat/message-item";
 import { useToast } from "@/components/providers/toast-provider";
 import { LinkButton } from "@/components/ui/button";
 import { Menu } from "@/components/ui/menu";
 import { EmptyState, Skeleton } from "@/components/ui/misc";
 import { ApiError } from "@/lib/api/client";
 import { chatApi } from "@/lib/api/endpoints";
-import type { Message, SourceChoice, StreamEvent } from "@/lib/types";
+import type { Message, PipelineStep, SourceChoice, StreamEvent } from "@/lib/types";
 import { cn, formatDateTime, greeting } from "@/lib/utils";
 
 const SUGGESTIONS = [
@@ -90,7 +90,7 @@ export function ChatView() {
   const [loadState, setLoadState] = useState<LoadState>("idle");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [streaming, setStreaming] = useState(false);
-  const [steps, setSteps] = useState<Step[]>([]);
+  const [steps, setSteps] = useState<PipelineStep[]>([]);
   const [atBottom, setAtBottom] = useState(true);
   const [notice, setNotice] = useState<{ code: string; message: string } | null>(null);
   const [remembered, setRemembered] = useState<SourceChoice | null>(null);
@@ -206,9 +206,27 @@ export function ChatView() {
             break;
           case "node_start":
             setSteps((current) => [
-              ...current.map((s) => ({ ...s, done: true })),
+              ...current.filter((step) => step.node !== event.node),
               { node: event.node, label: event.label, done: false },
             ]);
+            break;
+          case "node_end": {
+            const finished: PipelineStep = {
+              node: event.node,
+              label: event.label,
+              ms: event.ms,
+              tokens: event.tokens,
+              detail: event.detail,
+              done: true,
+            };
+            setSteps((current) =>
+              current.map((step) => (step.node === event.node ? finished : step)),
+            );
+            updateAssistant(tempId, (m) => ({ ...m, pipeline: [...(m.pipeline ?? []), finished] }));
+            break;
+          }
+          case "board":
+            updateAssistant(tempId, (m) => ({ ...m, board: event.board }));
             break;
           case "sources":
             updateAssistant(tempId, (m) => ({ ...m, sources: event.sources }));

@@ -5,7 +5,7 @@ import uuid
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import chat, chats, documents, folders, me, memory, models
+from app.api import chat, chats, documents, folders, me, memory, models, voice
 from app.config import settings
 from app.core.errors import register_error_handlers
 from app.store.files import healthy
@@ -63,6 +63,7 @@ for router in (
     documents.router,
     memory.router,
     models.router,
+    voice.router,
 ):
     app.include_router(router)
 
