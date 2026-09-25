@@ -75,19 +75,38 @@ interface RequestOptions {
   signal?: AbortSignal;
 }
 
+const WAKE_STATUSES = new Set([502, 503, 504]);
+const WAKE_DELAYS = [1200, 2500, 4500];
+
+function wait(ms: number, signal?: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    const timer = window.setTimeout(resolve, ms);
+    signal?.addEventListener("abort", () => {
+      window.clearTimeout(timer);
+      reject(new DOMException("Aborted", "AbortError"));
+    });
+  });
+}
+
 async function send(path: string, options: RequestOptions): Promise<Response> {
   const headers: Record<string, string> = { "X-Visitor-Id": visitorId() };
   if (options.body !== undefined) headers["Content-Type"] = "application/json";
-  try {
-    return await fetch(`${site.apiUrl}${path}`, {
-      method: options.method ?? "GET",
-      headers,
-      body: options.form ?? (options.body !== undefined ? JSON.stringify(options.body) : undefined),
-      signal: options.signal,
-    });
-  } catch (error) {
-    if ((error as Error).name === "AbortError") throw error;
-    throw networkError();
+  for (let attempt = 0; ; attempt++) {
+    const last = attempt >= WAKE_DELAYS.length;
+    try {
+      const response = await fetch(`${site.apiUrl}${path}`, {
+        method: options.method ?? "GET",
+        headers,
+        body:
+          options.form ?? (options.body !== undefined ? JSON.stringify(options.body) : undefined),
+        signal: options.signal,
+      });
+      if (!WAKE_STATUSES.has(response.status) || last) return response;
+    } catch (error) {
+      if ((error as Error).name === "AbortError") throw error;
+      if (last) throw networkError();
+    }
+    await wait(WAKE_DELAYS[attempt], options.signal);
   }
 }
 
