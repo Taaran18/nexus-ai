@@ -90,7 +90,7 @@ export function ModelPicker({ compact }: { compact?: boolean }) {
       searchPlaceholder="Search Models"
       onOpenChange={onOpen}
       floating={{
-        side: "top",
+        side: "auto",
         matchWidth: false,
         width: 440,
         minWidth: 320,

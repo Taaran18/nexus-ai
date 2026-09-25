@@ -29,6 +29,18 @@ GROQ_MODELS: list[dict] = [
         "why": "Pick this when the fastest model feels too shallow but you don't want to wait.",
     },
     {
+        "id": "openai/gpt-oss-20b:thorough",
+        "model": "openai/gpt-oss-20b",
+        "name": "GPT-OSS 20B Thorough",
+        "developer": "OpenAI",
+        "group": "thorough",
+        "reasoning_effort": "high",
+        "context": 131072,
+        "speed": "A few seconds of thinking, then a fast answer",
+        "best_for": "Homework-style maths, step-by-step logic and checking your work, with a shorter wait.",
+        "why": "The same model as GPT-OSS 20B, told to think harder. A lighter, quicker option than 120B Thorough.",
+    },
+    {
         "id": "openai/gpt-oss-120b:thorough",
         "model": "openai/gpt-oss-120b",
         "name": "GPT-OSS 120B Thorough",
@@ -39,6 +51,20 @@ GROQ_MODELS: list[dict] = [
         "speed": "Takes longer because it reasons step by step first",
         "best_for": "Maths, logic puzzles, tricky code, planning and anything where accuracy matters more than speed.",
         "why": "Pick this when a wrong answer would cost you more than a few extra seconds of waiting.",
+    },
+    {
+        "id": "qwen/qwen3.8-27b:instant",
+        "model": "qwen/qwen3.8-27b",
+        "name": "Qwen 3.8 27B Instant",
+        "developer": "Alibaba",
+        "group": "new",
+        "reasoning_effort": "none",
+        "reasoning_format": "parsed",
+        "context": 131072,
+        "speed": "Answers straight away with no thinking step",
+        "best_for": "Fast replies in many languages, rewriting and translating text.",
+        "why": "The newest model with its thinking switched off. Pick it for speed, especially outside English.",
+        "preview": True,
     },
     {
         "id": "qwen/qwen3.8-27b",
@@ -54,6 +80,20 @@ GROQ_MODELS: list[dict] = [
         "why": "Pick this to try the latest model. It's a preview, so Groq may change or retire it at short notice.",
         "preview": True,
     },
+    {
+        "id": "qwen/qwen3.8-27b:thorough",
+        "model": "qwen/qwen3.8-27b",
+        "name": "Qwen 3.8 27B Thorough",
+        "developer": "Alibaba",
+        "group": "new",
+        "reasoning_effort": "high",
+        "reasoning_format": "parsed",
+        "context": 131072,
+        "speed": "Slower, thinks deeply before answering",
+        "best_for": "Hard coding problems and multi-step reasoning with the newest model.",
+        "why": "The newest model at maximum effort. Pick it when you want a second opinion from a different model family.",
+        "preview": True,
+    },
 ]
 
 GROQ_GROUPS = [
@@ -63,7 +103,7 @@ GROQ_GROUPS = [
         "name": "Slow & Thorough",
         "description": "Thinks step by step before answering. Slower, but more careful.",
     },
-    {"id": "new", "name": "New", "description": "The latest models on Groq, in preview."},
+    {"id": "new", "name": "New", "description": "The latest model on Groq, in preview, at three thinking levels."},
 ]
 
 _BYOK: dict[str, dict[str, dict]] = {
